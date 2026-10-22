@@ -1,8 +1,9 @@
+import 'list_query.dart';
 import 'query_parsing.dart';
 
 /// Условия отбора списка авторов:
 /// `/designers?search=...&country=...&sort=lastName,asc&page=2&size=10&deleted=1`
-class DesignerQuery {
+class DesignerQuery implements ListQuery {
   const DesignerQuery({
     this.search = '',
     this.country,
@@ -30,12 +31,18 @@ class DesignerQuery {
   static const defaultSortField = 'lastName';
   static const _unset = Object();
 
+  @override
   final String search;
   final String? country;
+  @override
   final String sortField;
+  @override
   final bool sortAscending;
+  @override
   final int page;
+  @override
   final int size;
+  @override
   final bool includeDeleted;
 
   /// Любое изменение условий отбора сбрасывает page в 1,
@@ -70,6 +77,7 @@ class DesignerQuery {
     );
   }
 
+  @override
   Map<String, String> toQueryParameters() => {
         if (search.isNotEmpty) 'search': search,
         if (country != null) 'country': country!,

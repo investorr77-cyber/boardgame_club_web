@@ -1,13 +1,18 @@
 import 'package:flutter/foundation.dart';
 
 import '../models/page_result.dart';
+import '../repositories/repository_exception.dart';
+import 'data_changes.dart';
 import 'load_status.dart';
 
-/// Общая логика списка для игр и авторов: query, result, status, error,
+/// Общая логика списка для всех пяти сущностей: query, result, status, error,
 /// выделение и операции удаления. Наследники только связывают её с репозиторием.
 abstract class EntityListNotifier<T, Q> extends ChangeNotifier {
-  EntityListNotifier(this._query);
+  EntityListNotifier(this._query, {DataChanges? changes}) : _changes = changes {
+    _changes?.addListener(_onDataChanged);
+  }
 
+  final DataChanges? _changes;
   Q _query;
   PageResult<T> _result = PageResult<T>.empty();
   LoadStatus _status = LoadStatus.idle;
@@ -41,6 +46,21 @@ abstract class EntityListNotifier<T, Q> extends ChangeNotifier {
   Future<void> hardDeleteInRepository(int id);
   @protected
   Future<void> restoreInRepository(int id);
+
+  /// Проверка перед удалением. Бросает [OperationRefused], если удалять нельзя
+  /// (например, на издателя ссылаются игры).
+  @protected
+  Future<void> checkCanDelete(List<int> ids) async {}
+
+  void _onDataChanged() {
+    if (_changes!.source != this && _status != LoadStatus.idle) load();
+  }
+
+  @override
+  void dispose() {
+    _changes?.removeListener(_onDataChanged);
+    super.dispose();
+  }
 
   /// notifyListeners() до и после запроса: иначе индикатор загрузки не исчезнет.
   Future<void> load() async {
@@ -90,31 +110,53 @@ abstract class EntityListNotifier<T, Q> extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Логическое удаление выбранных. Возвращает число реально удалённых.
-  Future<int> deleteSelected() async {
-    if (_selected.isEmpty) return 0;
+  /// Логическое удаление выбранных. [refusal] — причина отказа, если удалять нельзя.
+  Future<({int count, String? refusal})> deleteSelected() async {
+    if (_selected.isEmpty) return (count: 0, refusal: null);
     final ids = _selected.toList();
-    final count = await _mutate(() => deleteManyInRepository(ids), ids);
-    return count ?? 0;
+    final outcome = await _mutate(() async {
+      await checkCanDelete(ids);
+      return deleteManyInRepository(ids);
+    }, ids);
+    return (count: outcome.value ?? 0, refusal: outcome.refusal);
   }
 
-  Future<void> softDelete(int id) => _mutate(() => softDeleteInRepository(id), [id]);
+  /// Возвращает причину отказа или null при успехе.
+  Future<String?> softDelete(int id) async => (await _mutate(() async {
+        await checkCanDelete([id]);
+        await softDeleteInRepository(id);
+        return true;
+      }, [id]))
+          .refusal;
 
-  Future<void> hardDelete(int id) => _mutate(() => hardDeleteInRepository(id), [id]);
+  Future<String?> hardDelete(int id) async => (await _mutate(() async {
+        await checkCanDelete([id]);
+        await hardDeleteInRepository(id);
+        return true;
+      }, [id]))
+          .refusal;
 
-  Future<void> restore(int id) => _mutate(() => restoreInRepository(id), [id]);
+  Future<String?> restore(int id) async => (await _mutate(() async {
+        await restoreInRepository(id);
+        return true;
+      }, [id]))
+          .refusal;
 
-  Future<R?> _mutate<R>(Future<R> Function() action, List<int> ids) async {
+  Future<({R? value, String? refusal})> _mutate<R>(
+      Future<R> Function() action, List<int> ids) async {
     try {
       final value = await action();
       _selected.removeAll(ids);
       await _reloadAfterMutation();
-      return value;
+      _changes?.bump(this);
+      return (value: value, refusal: null);
+    } on OperationRefused catch (e) {
+      return (value: null, refusal: e.message);
     } catch (e) {
       _error = e.toString();
       _status = LoadStatus.error;
       notifyListeners();
-      return null;
+      return (value: null, refusal: null);
     }
   }
 

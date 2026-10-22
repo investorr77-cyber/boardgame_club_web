@@ -1,8 +1,9 @@
+import 'list_query.dart';
 import 'query_parsing.dart';
 
 /// Условия отбора списка игр. Источник правды — адресная строка:
 /// `/games?search=каркассон&genreId=2&publisherId=1&yearFrom=2000&yearTo=2015&sort=year,desc&page=2&size=25&deleted=1`
-class GameQuery {
+class GameQuery implements ListQuery {
   const GameQuery({
     this.search = '',
     this.genreId,
@@ -41,15 +42,21 @@ class GameQuery {
   /// `copyWith(genreId: null)` сбрасывает фильтр, `copyWith()` его сохраняет.
   static const _unset = Object();
 
+  @override
   final String search;
   final int? genreId;
   final int? publisherId;
   final int? yearFrom;
   final int? yearTo;
+  @override
   final String sortField;
+  @override
   final bool sortAscending;
+  @override
   final int page;
+  @override
   final int size;
+  @override
   final bool includeDeleted;
 
   /// Любое изменение условий отбора сбрасывает page в 1,
@@ -97,6 +104,7 @@ class GameQuery {
       );
 
   /// В адрес пишутся только параметры, отличные от значений по умолчанию.
+  @override
   Map<String, String> toQueryParameters() => {
         if (search.isNotEmpty) 'search': search,
         if (genreId != null) 'genreId': '$genreId',

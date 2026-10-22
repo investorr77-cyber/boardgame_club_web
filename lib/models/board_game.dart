@@ -1,4 +1,7 @@
+import 'json_read.dart';
+
 /// Настольная игра клуба (аналог Book из методички).
+/// Связи: многие к одному с Publisher, многие ко многим с Designer и Genre.
 class BoardGame {
   const BoardGame({
     required this.id,
@@ -16,10 +19,26 @@ class BoardGame {
     this.deletedAt,
   });
 
+  factory BoardGame.fromJson(Map<String, dynamic> json) => BoardGame(
+        id: readInt(json['id']),
+        title: readString(json['title']),
+        barcode: readString(json['barcode']),
+        year: readInt(json['year']),
+        playTimeMin: readInt(json['playTimeMin']),
+        minPlayers: readInt(json['minPlayers'], 1),
+        maxPlayers: readInt(json['maxPlayers'], 1),
+        publisherId: readInt(json['publisherId']),
+        designerIds: readIntList(json['designerIds']),
+        genreIds: readIntList(json['genreIds']),
+        copiesTotal: readInt(json['copiesTotal']),
+        copiesAvailable: readInt(json['copiesAvailable']),
+        deletedAt: readDate(json['deletedAt']),
+      );
+
   final int id;
   final String title;
 
-  /// Штрихкод EAN-13 (аналог ISBN): строка из 13 цифр.
+  /// Штрихкод EAN-13 (аналог ISBN): строка из 13 цифр, уникален в каталоге.
   final String barcode;
 
   /// Год издания.
@@ -41,6 +60,22 @@ class BoardGame {
   final DateTime? deletedAt;
 
   bool get isDeleted => deletedAt != null;
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'title': title,
+        'barcode': barcode,
+        'year': year,
+        'playTimeMin': playTimeMin,
+        'minPlayers': minPlayers,
+        'maxPlayers': maxPlayers,
+        'publisherId': publisherId,
+        'designerIds': designerIds,
+        'genreIds': genreIds,
+        'copiesTotal': copiesTotal,
+        'copiesAvailable': copiesAvailable,
+        'deletedAt': deletedAt?.toIso8601String(),
+      };
 
   /// [clearDeletedAt] отличает «не менять поле» (deletedAt не передан)
   /// от «сбросить в null» (восстановление записи).

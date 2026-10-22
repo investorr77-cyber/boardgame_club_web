@@ -7,3 +7,15 @@ class RepositoryException implements Exception {
   @override
   String toString() => message;
 }
+
+/// Отказ в операции по бизнес-правилу: например, удалить издателя нельзя,
+/// пока на него ссылаются игры. Это не сбой — экран показывает сообщение
+/// и оставляет список как есть.
+class OperationRefused implements Exception {
+  const OperationRefused(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
+}
