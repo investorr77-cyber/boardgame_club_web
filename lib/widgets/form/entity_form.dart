@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../core/api_exceptions.dart';
 import '../confirm_dialog.dart';
 
 /// Описание текстового поля. Форма любой сущности строится по списку таких описаний.
@@ -125,6 +126,28 @@ class _EntityFormState extends State<EntityForm> {
     Map<String, String> errors;
     try {
       errors = await widget.onSubmit(_values);
+    } on ValidationException catch (e) {
+      // 422: ошибки сервера раскладываются по полям — ключи совпадают
+      // с именами полей. Ошибки полей связей и прочие — общим сообщением.
+      final fieldNames = _controllers.keys.toSet();
+      errors = {
+        for (final entry in e.errors.entries)
+          if (fieldNames.contains(entry.key)) entry.key: entry.value,
+      };
+      final other = [
+        for (final entry in e.errors.entries)
+          if (!fieldNames.contains(entry.key)) entry.value,
+      ];
+      if (other.isNotEmpty && mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(other.join('\n'))));
+      }
+      if (other.isEmpty && errors.isEmpty && mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.message)));
+      }
+      // Сохранение не удалось — форма остаётся открытой.
+      if (errors.isEmpty) errors = {'_server': e.message};
     } catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);

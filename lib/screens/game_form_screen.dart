@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../models/board_game.dart';
-import '../state/edit_notifiers.dart';
+import '../state/edit_notifiers.dart' show EntityEditNotifier;
 import '../state/reference_notifier.dart';
 import '../widgets/form/entity_form.dart';
 import '../widgets/form/relation_fields.dart';
@@ -76,13 +76,10 @@ class _GameFormState extends State<_GameForm> {
   }
 
   Future<Map<String, String>> _save(Map<String, String> v) async {
-    final notifier =
-        context.read<EntityEditNotifier<BoardGame>>() as GameEditNotifier;
+    final notifier = context.read<EntityEditNotifier<BoardGame>>();
     final original = widget.game;
-    // Уникальность штрихкода: ошибка показывается под полем, а не общим сообщением.
-    if (await notifier.isBarcodeTaken(v['barcode']!, exceptId: original?.id)) {
-      return {'barcode': 'Игра с таким штрихкодом уже есть в каталоге'};
-    }
+    // Уникальность штрихкода проверяет сервер: ответ 422 с ключом barcode
+    // EntityForm покажет под полем штрихкода.
     final game = BoardGame(
       id: original?.id ?? 0,
       title: v['title']!,

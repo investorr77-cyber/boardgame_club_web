@@ -10,4 +10,10 @@ abstract interface class BoardGameRepository
 
   /// Сколько игр ссылается на издателя — нужно для запрета удаления.
   Future<int> countByPublisher(int publisherId);
+
+  /// Выдать коробку участнику. Нет свободных — ConflictException (409).
+  Future<BoardGame> checkout(int id);
+
+  /// Вернуть коробку в клуб.
+  Future<BoardGame> giveBack(int id);
 }

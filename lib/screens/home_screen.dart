@@ -15,8 +15,8 @@ class HomeScreen extends StatelessWidget {
     final ok = await showConfirmDialog(
       context,
       title: 'Вернуть начальный набор?',
-      message: 'Все созданные и изменённые записи будут стёрты из хранилища '
-          'браузера, вернутся исходные 30 игр, 12 авторов, 7 жанров, '
+      message: 'Все созданные и изменённые записи будут стёрты на сервере, '
+          'вернутся исходные 30 игр, 12 авторов, 7 жанров, '
           '6 издателей и 12 участников. Это действие необратимо.',
       confirmLabel: 'Сбросить',
       destructive: true,
@@ -72,8 +72,8 @@ class HomeScreen extends StatelessWidget {
                     style: theme.textTheme.headlineMedium),
                 const SizedBox(height: 8),
                 const Text(
-                  'Пять разделов со связями. Изменения сохраняются в браузере '
-                  'и переживают перезагрузку страницы.',
+                  'Пять разделов со связями. Данные хранятся на сервере '
+                  '(REST API), поиск и пагинация выполняются на сервере.',
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 24),

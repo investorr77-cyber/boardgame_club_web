@@ -1,24 +1,21 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
+import 'core/api_client.dart';
+import 'core/api_exceptions.dart';
 import 'models/board_game.dart';
 import 'models/designer.dart';
 import 'models/designer_query.dart';
 import 'models/game_query.dart';
 import 'models/genre.dart';
-import 'models/list_query.dart';
 import 'models/member.dart';
 import 'models/publisher.dart';
 import 'models/simple_query.dart';
+import 'repositories/api/api_repositories.dart';
 import 'repositories/board_game_repository.dart';
 import 'repositories/designer_repository.dart';
-import 'repositories/in_memory_board_game_repository.dart';
-import 'repositories/in_memory_crud_repository.dart';
-import 'repositories/in_memory_designer_repository.dart';
-import 'repositories/in_memory_reference_repositories.dart';
-import 'repositories/local_store.dart';
 import 'repositories/reference_repositories.dart';
 import 'router.dart';
 import 'state/data_changes.dart';
@@ -35,31 +32,16 @@ Future<void> main() async {
   // Адреса без «#»: /games?search=... вместо /#/games?search=...
   usePathUrlStrategy();
 
-  // На web shared_preferences хранит данные в localStorage браузера.
-  final prefs = await SharedPreferences.getInstance();
-  final store = LocalStore(prefs);
-  final notices = <String>[];
-  final outdated = await store.dropOutdated();
-  if (outdated != null) notices.add(outdated);
-
   final failure = FailureSimulator();
-  bool shouldFail() => failure.enabled;
-  final games = InMemoryBoardGameRepository(store: store, shouldFail: shouldFail);
-  final designers = InMemoryDesignerRepository(store: store, shouldFail: shouldFail);
-  final genres = InMemoryGenreRepository(store: store, shouldFail: shouldFail);
-  final publishers = InMemoryPublisherRepository(store: store, shouldFail: shouldFail);
-  final members = InMemoryMemberRepository(store: store, shouldFail: shouldFail);
-  final all = <InMemoryCrudRepository<Object?, ListQuery>>[
-    games,
-    designers,
-    genres,
-    publishers,
-    members,
-  ];
-  for (final repository in all) {
-    final notice = repository.restoreNotice;
-    if (notice != null) notices.add(notice);
-  }
+  // Единственное место, где меняется приложение целиком: вместо хранилища
+  // в памяти — репозитории поверх REST API. Интерфейсы прежние.
+  final dio = buildDio(simulateFailure: () => failure.enabled);
+  final games = ApiBoardGameRepository(dio);
+  final designers = ApiDesignerRepository(dio);
+  final genres = ApiGenreRepository(dio);
+  final publishers = ApiPublisherRepository(dio);
+  final members = ApiMemberRepository(dio);
+  const notices = <String>[];
   final changes = DataChanges();
 
   // MultiProvider оборачивает MaterialApp.router: провайдеры выше всех экранов,
@@ -69,6 +51,7 @@ Future<void> main() async {
       providers: [
         ChangeNotifierProvider<FailureSimulator>.value(value: failure),
         ChangeNotifierProvider<DataChanges>.value(value: changes),
+        Provider<Dio>.value(value: dio),
         Provider<BoardGameRepository>.value(value: games),
         Provider<DesignerRepository>.value(value: designers),
         Provider<GenreRepository>.value(value: genres),
@@ -77,7 +60,8 @@ Future<void> main() async {
         ChangeNotifierProvider<StorageNotifier>(
           create: (_) => StorageNotifier(
             notices: notices,
-            resetters: [for (final r in all) r.reset],
+            // Начальный набор восстанавливает сервер.
+            resetters: [() => guard(() => dio.post<Object?>('/__reset'))],
             changes: changes,
           ),
         ),

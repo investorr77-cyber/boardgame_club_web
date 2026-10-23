@@ -1,3 +1,4 @@
+import '../core/api_exceptions.dart';
 import '../models/board_game.dart';
 import '../models/game_query.dart';
 import 'board_game_repository.dart';
@@ -83,4 +84,23 @@ class InMemoryBoardGameRepository
   @override
   Future<int> countByPublisher(int publisherId) async =>
       items.where((g) => g.publisherId == publisherId).length;
+
+  @override
+  Future<BoardGame> checkout(int id) async {
+    final game = (await findById(id))!;
+    if (game.copiesAvailable <= 0) {
+      throw ConflictException('Нет свободных коробок «${game.title}»: '
+          'все ${game.copiesTotal} на руках.');
+    }
+    return update(game.copyWith(copiesAvailable: game.copiesAvailable - 1));
+  }
+
+  @override
+  Future<BoardGame> giveBack(int id) async {
+    final game = (await findById(id))!;
+    if (game.copiesAvailable >= game.copiesTotal) {
+      throw ConflictException('Все коробки «${game.title}» уже в клубе.');
+    }
+    return update(game.copyWith(copiesAvailable: game.copiesAvailable + 1));
+  }
 }

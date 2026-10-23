@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../models/member.dart';
-import '../state/edit_notifiers.dart';
+import '../state/edit_notifiers.dart' show EntityEditNotifier;
 import '../widgets/form/entity_form.dart';
 import '../widgets/form/validators.dart';
 import 'edit_frame.dart';
@@ -42,32 +42,25 @@ class _MemberFormState extends State<_MemberForm> {
 
   Map<String, String> get _initialValues {
     final m = widget.member;
-    if (m == null) return {'cardIssuedYear': '$currentYear', 'cardMaxGames': '2'};
+    if (m == null) return {'card.issuedYear': '$currentYear', 'card.maxGames': '2'};
     return {
       'lastName': m.lastName,
       'firstName': m.firstName,
       'email': m.email,
       'phone': m.phone,
       'city': m.city,
-      'cardNumber': m.card.number,
-      'cardIssuedYear': '${m.card.issuedYear}',
-      'cardMaxGames': '${m.card.maxGames}',
+      'card.number': m.card.number,
+      'card.issuedYear': '${m.card.issuedYear}',
+      'card.maxGames': '${m.card.maxGames}',
     };
   }
 
   Future<Map<String, String>> _save(Map<String, String> v) async {
-    final notifier =
-        context.read<EntityEditNotifier<Member>>() as MemberEditNotifier;
+    final notifier = context.read<EntityEditNotifier<Member>>();
     final original = widget.member;
-    final cardNumber = v['cardNumber']!.toUpperCase();
-    // Обе проверки уникальности сразу: ошибки появятся под своими полями.
-    final errors = <String, String>{
-      if (await notifier.isEmailTaken(v['email']!, exceptId: original?.id))
-        'email': 'Участник с такой почтой уже зарегистрирован',
-      if (await notifier.isCardNumberTaken(cardNumber, exceptId: original?.id))
-        'cardNumber': 'Карта с таким номером уже выдана',
-    };
-    if (errors.isNotEmpty) return errors;
+    final cardNumber = v['card.number']!.toUpperCase();
+    // Уникальность почты и номера карты проверяет сервер: ответ 422 с ключами
+    // email и card.number EntityForm разложит по полям.
     final member = Member(
       id: original?.id ?? 0,
       lastName: v['lastName']!,
@@ -77,8 +70,8 @@ class _MemberFormState extends State<_MemberForm> {
       city: v['city']!,
       card: MemberCard(
         number: cardNumber,
-        issuedYear: int.parse(v['cardIssuedYear']!),
-        maxGames: int.parse(v['cardMaxGames']!),
+        issuedYear: int.parse(v['card.issuedYear']!),
+        maxGames: int.parse(v['card.maxGames']!),
       ),
       deletedAt: original?.deletedAt,
     );
@@ -140,14 +133,14 @@ class _MemberFormState extends State<_MemberForm> {
         ]),
         FieldGroup(title: 'Клубная карта (связь «один к одному»)', fields: [
           FieldSpec(
-            name: 'cardNumber',
+            name: 'card.number',
             label: 'Номер карты',
             hint: 'BG-000123',
             inputFormatters: [LengthLimitingTextInputFormatter(9)],
             validator: all([notEmpty(), cardNumber()]),
           ),
           FieldSpec(
-            name: 'cardIssuedYear',
+            name: 'card.issuedYear',
             label: 'Год выдачи',
             width: 160,
             keyboardType: TextInputType.number,
@@ -155,7 +148,7 @@ class _MemberFormState extends State<_MemberForm> {
             validator: all([notEmpty(), year(min: 2000)]),
           ),
           FieldSpec(
-            name: 'cardMaxGames',
+            name: 'card.maxGames',
             label: 'Лимит игр на руках',
             width: 200,
             keyboardType: TextInputType.number,

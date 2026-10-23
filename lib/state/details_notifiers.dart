@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
 
+import '../core/api_exceptions.dart';
 import '../models/board_game.dart';
 import '../models/designer.dart';
-import '../models/game_query.dart';
 import '../repositories/board_game_repository.dart';
 import '../repositories/designer_repository.dart';
 import 'data_changes.dart';
@@ -84,14 +84,46 @@ class EntityDetailsNotifier<T> extends ChangeNotifier {
 
 /// Карточка игры: игра и её авторы.
 class GameDetailsNotifier extends EntityDetailsNotifier<BoardGame> {
-  GameDetailsNotifier(BoardGameRepository games, this._designerRepository,
+  GameDetailsNotifier(this._gameRepository, this._designerRepository,
       {super.changes})
-      : super(load: games.findById);
+      : _dataChanges = changes,
+        super(load: _gameRepository.findById);
 
+  final BoardGameRepository _gameRepository;
   final DesignerRepository _designerRepository;
+  final DataChanges? _dataChanges;
   List<Designer> _designers = const [];
+  bool _busy = false;
 
   List<Designer> get designers => _designers;
+
+  /// Идёт выдача или возврат: кнопки заблокированы от повторного нажатия.
+  bool get busy => _busy;
+
+  /// Выдать коробку. Возвращает текст для пользователя: успех
+  /// или понятное сообщение о конфликте 409 («нет свободных коробок»).
+  Future<String> checkout() => _changeCopies(_gameRepository.checkout, 'Коробка выдана участнику');
+
+  /// Вернуть коробку в клуб.
+  Future<String> giveBack() => _changeCopies(_gameRepository.giveBack, 'Коробка возвращена в клуб');
+
+  Future<String> _changeCopies(
+      Future<BoardGame> Function(int id) action, String success) async {
+    final id = requestedId;
+    if (id == null || _busy) return '';
+    _busy = true;
+    notifyListeners();
+    try {
+      await action(id);
+      _dataChanges?.bump(); // перечитает карточку, списки и справочники
+      return success;
+    } on ApiException catch (e) {
+      return e.message;
+    } finally {
+      _busy = false;
+      notifyListeners();
+    }
+  }
 
   @override
   Future<void> load(int? id) async {
@@ -116,12 +148,9 @@ class DesignerDetailsNotifier extends EntityDetailsNotifier<Designer> {
       : super(
           load: designers.findById,
           related: (designer) async {
-            // Все игры одной выборкой; в ПР4 здесь будет отдельный запрос к серверу.
-            final all = await games
-                .find(const GameQuery(size: 1000, includeDeleted: true));
-            return all.items
-                .where((g) => g.designerIds.contains(designer.id))
-                .toList();
+            // findAll, а не find: find отменяет предыдущий запрос списка игр.
+            final all = await games.findAll(includeDeleted: true);
+            return all.where((g) => g.designerIds.contains(designer.id)).toList();
           },
         );
 }

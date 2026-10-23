@@ -19,6 +19,8 @@ class BoardGame {
     this.deletedAt,
   });
 
+  /// Разбирает обе формы: на запись уходят publisherId, designerIds, genreIds,
+  /// а сервер возвращает развёрнутые объекты publisher, designers, genres.
   factory BoardGame.fromJson(Map<String, dynamic> json) => BoardGame(
         id: readInt(json['id']),
         title: readString(json['title']),
@@ -27,9 +29,15 @@ class BoardGame {
         playTimeMin: readInt(json['playTimeMin']),
         minPlayers: readInt(json['minPlayers'], 1),
         maxPlayers: readInt(json['maxPlayers'], 1),
-        publisherId: readInt(json['publisherId']),
-        designerIds: readIntList(json['designerIds']),
-        genreIds: readIntList(json['genreIds']),
+        publisherId: json.containsKey('publisherId')
+            ? readInt(json['publisherId'])
+            : readInt(readMap(json['publisher'])['id']),
+        designerIds: json.containsKey('designerIds')
+            ? readIntList(json['designerIds'])
+            : readIdsOfObjects(json['designers']),
+        genreIds: json.containsKey('genreIds')
+            ? readIntList(json['genreIds'])
+            : readIdsOfObjects(json['genres']),
         copiesTotal: readInt(json['copiesTotal']),
         copiesAvailable: readInt(json['copiesAvailable']),
         deletedAt: readDate(json['deletedAt']),

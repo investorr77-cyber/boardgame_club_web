@@ -25,6 +25,16 @@ List<int> readIntList(Object? value) {
   ];
 }
 
+/// Список развёрнутых объектов `[{id: 1, ...}, ...]` → список id.
+List<int> readIdsOfObjects(Object? value) {
+  if (value is! List) return const [];
+  return [
+    for (final item in value)
+      if (item is Map)
+        if (readIntOrNull(item['id']) case final int id) id,
+  ];
+}
+
 DateTime? readDate(Object? value) =>
     value is String ? DateTime.tryParse(value) : null;
 

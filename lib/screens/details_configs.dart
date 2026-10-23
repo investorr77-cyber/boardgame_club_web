@@ -36,7 +36,36 @@ final gameDetailsConfig = EntityDetailsConfig<BoardGame>(
     final designers =
         notifier is GameDetailsNotifier ? notifier.designers : const <Designer>[];
     final titleStyle = Theme.of(context).textTheme.titleMedium;
+    final busy = notifier is GameDetailsNotifier && notifier.busy;
+    Future<void> run(Future<String> Function() action) async {
+      final message = await action();
+      if (message.isNotEmpty && context.mounted) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text(message)));
+      }
+    }
+
     return [
+      if (notifier is GameDetailsNotifier && !g.isDeleted) ...[
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 12,
+          runSpacing: 8,
+          children: [
+            FilledButton.icon(
+              onPressed: busy ? null : () => run(notifier.checkout),
+              icon: const Icon(Icons.outbox_outlined),
+              label: const Text('Выдать коробку'),
+            ),
+            OutlinedButton.icon(
+              onPressed: busy ? null : () => run(notifier.giveBack),
+              icon: const Icon(Icons.move_to_inbox_outlined),
+              label: const Text('Вернуть коробку'),
+            ),
+          ],
+        ),
+      ],
       const SizedBox(height: 16),
       Text('Жанры', style: titleStyle),
       const SizedBox(height: 8),

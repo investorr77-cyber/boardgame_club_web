@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../core/api_exceptions.dart';
 import '../models/page_result.dart';
 import '../repositories/repository_exception.dart';
 import 'data_changes.dart';
@@ -151,6 +152,9 @@ abstract class EntityListNotifier<T, Q> extends ChangeNotifier {
       _changes?.bump(this);
       return (value: value, refusal: null);
     } on OperationRefused catch (e) {
+      return (value: null, refusal: e.message);
+    } on ConflictException catch (e) {
+      // 409 от сервера: на запись ссылаются другие — показываем как отказ.
       return (value: null, refusal: e.message);
     } catch (e) {
       _error = e.toString();
