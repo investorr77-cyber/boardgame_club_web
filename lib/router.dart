@@ -7,9 +7,12 @@ import 'models/designer_query.dart';
 import 'models/game_query.dart';
 import 'models/genre.dart';
 import 'models/member.dart';
+import 'models/permissions.dart';
 import 'models/publisher.dart';
 import 'models/simple_query.dart';
 import 'repositories/in_memory_reference_repositories.dart';
+import 'screens/auth_screens.dart';
+import 'screens/club_screens.dart';
 import 'screens/details_configs.dart';
 import 'screens/entity_details_screen.dart';
 import 'screens/entity_list_screen.dart';
@@ -19,6 +22,7 @@ import 'screens/list_configs.dart';
 import 'screens/member_form_screen.dart';
 import 'screens/not_found_screen.dart';
 import 'screens/simple_form_screens.dart';
+import 'state/auth_notifier.dart';
 
 /// Маршруты сущности: список, создание, карточка, изменение.
 /// '/x/new' объявлен раньше '/x/:id', иначе «new» принялся бы за id.
@@ -41,8 +45,30 @@ List<GoRoute> _entityRoutes({
       ),
     ];
 
-final appRouter = GoRouter(
+/// Маршрутизатор пересчитывает redirect при каждом notifyListeners() сессии:
+/// вход, выход, истёкший токен, выход по бездействию.
+GoRouter buildRouter(AuthNotifier auth) => GoRouter(
+  refreshListenable: auth,
+  // Не вошёл — на вход с запоминанием адреса; чужой адрес — экран отказа.
+  // Проверка в redirect, а не в build виджета: иначе экран отказа мелькал бы.
+  redirect: (context, state) => authRedirect(role: auth.role, uri: state.uri),
   routes: [
+    GoRoute(
+      path: '/login',
+      builder: (context, state) => LoginScreen(from: state.uri.queryParameters['from']),
+    ),
+    GoRoute(
+      path: '/register',
+      builder: (context, state) => RegisterScreen(from: state.uri.queryParameters['from']),
+    ),
+    GoRoute(
+      path: '/forbidden',
+      builder: (context, state) => ForbiddenScreen(from: state.uri.queryParameters['from']),
+    ),
+    GoRoute(path: '/my-loans', builder: (context, state) => const MyLoansScreen()),
+    GoRoute(path: '/loans', builder: (context, state) => const LoansScreen()),
+    GoRoute(path: '/admin/users', builder: (context, state) => const AdminUsersScreen()),
+    GoRoute(path: '/admin/stats', builder: (context, state) => const AdminStatsScreen()),
     GoRoute(path: '/', builder: (context, state) => const HomeScreen()),
     ..._entityRoutes(
       path: '/games',

@@ -2,9 +2,10 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/api_client.dart';
-import 'core/api_exceptions.dart';
+import 'core/config.dart';
 import 'models/board_game.dart';
 import 'models/designer.dart';
 import 'models/designer_query.dart';
@@ -14,10 +15,14 @@ import 'models/member.dart';
 import 'models/publisher.dart';
 import 'models/simple_query.dart';
 import 'repositories/api/api_repositories.dart';
+import 'repositories/api/auth_api.dart';
+import 'repositories/api/club_api.dart';
 import 'repositories/board_game_repository.dart';
 import 'repositories/designer_repository.dart';
 import 'repositories/reference_repositories.dart';
 import 'router.dart';
+import 'state/auth_notifier.dart';
+import 'state/club_notifiers.dart';
 import 'state/data_changes.dart';
 import 'state/details_notifiers.dart';
 import 'state/edit_notifiers.dart';
@@ -26,16 +31,34 @@ import 'state/failure_simulator.dart';
 import 'state/list_notifiers.dart';
 import 'state/reference_notifier.dart';
 import 'state/storage_notifier.dart';
+import 'widgets/inactivity_watcher.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Адреса без «#»: /games?search=... вместо /#/games?search=...
   usePathUrlStrategy();
 
+  // Сессия: токены и профиль лежат в localStorage и переживают перезагрузку.
+  final prefs = await SharedPreferences.getInstance();
+  final auth = AuthNotifier(
+    prefs,
+    AuthApi(),
+    inactivityTimeout: const Duration(seconds: inactivitySeconds),
+    maxSession: const Duration(minutes: sessionMaxMinutes),
+  );
+  await auth.restore(); // до построения дерева виджетов
+
   final failure = FailureSimulator();
-  // Единственное место, где меняется приложение целиком: вместо хранилища
-  // в памяти — репозитории поверх REST API. Интерфейсы прежние.
-  final dio = buildDio(simulateFailure: () => failure.enabled);
+  // Все запросы к защищённым адресам уходят с заголовком Authorization;
+  // при 401 интерсептор обновляет токен и повторяет запрос.
+  final dio = buildDio(
+    simulateFailure: () => failure.enabled,
+    tokenProvider: () => auth.accessToken,
+    refreshSession: auth.refreshTokens,
+    onSessionExpired: () => auth.logout(reason: 'Сессия истекла. Войдите снова.'),
+  );
+  final loanApi = LoanApi(dio);
+  final adminApi = AdminApi(dio);
   final games = ApiBoardGameRepository(dio);
   final designers = ApiDesignerRepository(dio);
   final genres = ApiGenreRepository(dio);
@@ -49,7 +72,13 @@ Future<void> main() async {
   runApp(
     MultiProvider(
       providers: [
+        ChangeNotifierProvider<AuthNotifier>.value(value: auth),
         ChangeNotifierProvider<FailureSimulator>.value(value: failure),
+        ChangeNotifierProvider<MyLoansNotifier>(create: (_) => MyLoansNotifier(loanApi)),
+        ChangeNotifierProvider<LoansNotifier>(
+            create: (_) => LoansNotifier(loanApi, changes: changes)),
+        ChangeNotifierProvider<UsersNotifier>(create: (_) => UsersNotifier(adminApi)),
+        ChangeNotifierProvider<StatsNotifier>(create: (_) => StatsNotifier(adminApi)),
         ChangeNotifierProvider<DataChanges>.value(value: changes),
         Provider<Dio>.value(value: dio),
         Provider<BoardGameRepository>.value(value: games),
@@ -61,12 +90,13 @@ Future<void> main() async {
           create: (_) => StorageNotifier(
             notices: notices,
             // Начальный набор восстанавливает сервер.
-            resetters: [() => guard(() => dio.post<Object?>('/__reset'))],
+            resetters: [adminApi.resetData],
             changes: changes,
           ),
         ),
         ChangeNotifierProvider<ReferenceNotifier>(
           create: (_) => ReferenceNotifier(
+            auth: auth,
             games: games,
             designers: designers,
             genres: genres,
@@ -157,6 +187,7 @@ class BoardGameClubApp extends StatefulWidget {
 
 class _BoardGameClubAppState extends State<BoardGameClubApp> {
   final _messengerKey = GlobalKey<ScaffoldMessengerState>();
+  late final _router = buildRouter(context.read<AuthNotifier>());
 
   @override
   void initState() {
@@ -180,7 +211,26 @@ class _BoardGameClubAppState extends State<BoardGameClubApp> {
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
       ),
-      routerConfig: appRouter,
+      routerConfig: _router,
+      // Выход по бездействию отслеживается на уровне всего приложения.
+      builder: (context, child) {
+        final auth = context.watch<AuthNotifier>();
+        return InactivityWatcher(
+          enabled: auth.isAuthenticated,
+          timeout: auth.inactivityTimeout,
+          onActivity: auth.touch,
+          onWarning: () => _messengerKey.currentState?.showSnackBar(const SnackBar(
+            content: Text('Сеанс завершится через 30 секунд из-за бездействия.'),
+            duration: Duration(seconds: 25),
+          )),
+          onTimeout: () {
+            _messengerKey.currentState?.hideCurrentSnackBar();
+            auth.logout(reason: 'Сеанс завершён из-за бездействия '
+                '( мин без действий).');
+          },
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
     );
   }
 }

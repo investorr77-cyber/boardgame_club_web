@@ -13,6 +13,8 @@ import 'config.dart';
 Dio buildDio({
   String baseUrl = apiBaseUrl,
   String? Function()? tokenProvider,
+  Future<bool> Function()? refreshSession,
+  void Function()? onSessionExpired,
   bool Function()? simulateFailure,
   Map<String, String>? debugParams,
   int maxAttempts = 3,
@@ -76,6 +78,30 @@ Dio buildDio({
         // Сюда приходят сетевые сбои, таймауты, коды 5xx
         // и всё, что отклонил обработчик выше.
         final options = error.requestOptions;
+
+        // 401: токен истёк прямо во время работы. Молча обновляем его
+        // и повторяем запрос; не получилось — выводим из системы.
+        // Условие !path.contains('/auth/') обязательно: без него неудачный
+        // вход с кодом 401 запускал бы обновление токена, то вернуло бы 401 —
+        // и получился бы бесконечный цикл. Флаг refreshed не даёт повторять
+        // один и тот же запрос больше одного раза.
+        if (error.response?.statusCode == 401 &&
+            refreshSession != null &&
+            !options.path.contains('/auth/') &&
+            options.extra['refreshed'] != true) {
+          if (await refreshSession()) {
+            options.extra['refreshed'] = true;
+            if (kDebugMode) debugPrint('[API] токен обновлён, повтор ${options.uri}');
+            try {
+              return handler.resolve(await dio.fetch(options));
+            } on DioException catch (e) {
+              return handler.next(e);
+            }
+          }
+          onSessionExpired?.call();
+          return handler.next(error);
+        }
+
         final attempt = (options.extra['attempt'] as int?) ?? 1;
         // Повтор — только для чтения: повторять создание записи нельзя.
         if (options.method == 'GET' && _isNetworkFailure(error) && attempt < maxAttempts) {

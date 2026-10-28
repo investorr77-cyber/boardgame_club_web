@@ -52,3 +52,13 @@ flutter run -d chrome --web-port 5555
 - `__delay=1500` — сервер задерживает ответ на указанное число миллисекунд.
 
 Клиент передаёт эти параметры серверу, если они есть в адресе страницы, например `http://localhost:5555/games?__delay=1500`.
+
+## Аутентификация и роли (ПР5)
+
+Вход: `POST /api/auth/login`, регистрация: `POST /api/auth/register`, обновление токена: `POST /api/auth/refresh`, профиль: `GET /api/auth/me`. Все остальные адреса требуют заголовок `Authorization: Bearer <токен>`.
+
+Учебные учётные записи: `reader / Reader123!` (участник клуба), `staff / Staff123!` (сотрудник клуба), `admin / Admin123!` (администратор).
+
+Выдачи: `GET /api/loans?mine=true`, `GET /api/loans`, `POST /api/loans`, `POST /api/loans/{id}/close`, `POST /api/loans/{id}/extend`. Администрирование: `GET /api/admin/users`, `PUT /api/admin/users/{id}`, `GET /api/admin/stats`.
+
+Параметр `--ttl 60` задаёт срок жизни токена доступа в секундах. Так проверяется автоматическое обновление токена.

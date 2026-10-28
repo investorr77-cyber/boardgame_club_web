@@ -109,3 +109,32 @@ FormFieldValidator<String> ean13() => (value) {
           ? null
           : 'Неверная контрольная цифра EAN-13 (ожидается $check)';
     };
+
+/// Требования к паролю при регистрации. Те же правила проверяет сервер.
+const passwordRules = <(String, bool Function(String))>[
+  ('не короче 8 символов', _longEnough),
+  ('есть цифра', _hasDigit),
+  ('есть специальный символ (!, @, # …)', _hasSpecial),
+];
+
+bool _longEnough(String v) => v.length >= 8;
+bool _hasDigit(String v) => RegExp(r'\d').hasMatch(v);
+bool _hasSpecial(String v) => RegExp(r'[^A-Za-zА-Яа-яЁё0-9]').hasMatch(v);
+
+/// Усиленная проверка пароля: длина ≥ 8, цифра, специальный символ.
+FormFieldValidator<String> strongPassword() => (value) {
+      final text = value ?? '';
+      if (text.isEmpty) return 'Обязательное поле';
+      for (final (label, ok) in passwordRules) {
+        if (!ok(text)) return 'Пароль: $label';
+      }
+      return null;
+    };
+
+/// Логин: латиница, цифры и подчёркивание, 3–20 символов.
+FormFieldValidator<String> username() => (value) {
+      final text = _text(value);
+      return text.isNotEmpty && !RegExp(r'^[A-Za-z0-9_]{3,20}$').hasMatch(text)
+          ? 'Логин: 3–20 латинских букв, цифр или _'
+          : null;
+    };

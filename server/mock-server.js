@@ -1,7 +1,9 @@
 #!/usr/bin/env node
-// Учебный REST-сервер клуба настольных игр (ПР4). Без зависимостей: node mock-server.js
+// Учебный REST-сервер клуба настольных игр (ПР4–ПР5). Без зависимостей.
 //
-//   node mock-server.js --port 8080 --origin http://localhost:5555
+//   node mock-server.js --port 8080 --origin http://localhost:5555 [--ttl 60]
+//
+// Вход: admin / Admin123!, staff / Staff123!, reader / Reader123!, maria / Maria123!
 //
 // Данные хранятся в памяти сервера (начальный набор — seed.js).
 // Служебные параметры любого запроса:
@@ -12,6 +14,7 @@
 
 const http = require('http');
 const seed = require('./seed');
+const auth = require('./auth');
 
 const args = process.argv.slice(2);
 const arg = (name, fallback) => {
@@ -21,7 +24,13 @@ const arg = (name, fallback) => {
 const PORT = Number(arg('port', 8080));
 const ORIGIN = arg('origin', 'http://localhost:5555');
 
-let db = seed();
+// Срок жизни токена доступа в секундах: --ttl 60 для проверки обновления токена.
+const TTL = Number(arg('ttl', 900));
+const REFRESH_TTL = 7 * 24 * 3600;
+const DAY = 24 * 3600 * 1000;
+
+const freshDb = () => ({ ...seed(), users: auth.seedUsers(), loans: auth.seedLoans() });
+let db = freshDb();
 
 // ---------- вспомогательные функции ----------
 
@@ -259,15 +268,192 @@ function find(name, id) {
 
 const respond = (name, item) => (resources[name].toResponse ? resources[name].toResponse(item) : item);
 
-function route(method, parts, q, body) {
+// ---------- аутентификация, роли, выдачи (ПР5) ----------
+
+/** Проверка права: нет входа — 401, нет права — 403. */
+function need(user, operation) {
+  if (!user) throw new HttpError(401, 'Требуется вход в систему.');
+  if (!auth.can(user.role, operation)) {
+    throw new HttpError(403, `Недостаточно прав: операция недоступна для роли «${auth.ROLES[user.role]}».`);
+  }
+}
+
+function issueTokens(user) {
+  return {
+    accessToken: auth.sign({ type: 'access', sub: user.id, role: user.role }, TTL),
+    refreshToken: auth.sign({ type: 'refresh', sub: user.id }, REFRESH_TTL),
+    expiresIn: TTL,
+    user: auth.publicUser(user),
+  };
+}
+
+function authRoute(method, action, body, user) {
+  if (action === 'login' && method === 'POST') {
+    const found = db.users.find((u) => u.username === text(body?.username).toLowerCase());
+    if (!found || !auth.checkPassword(body?.password ?? '', found.password)) {
+      throw new HttpError(401, 'Неверный логин или пароль.');
+    }
+    return [200, issueTokens(found)];
+  }
+  if (action === 'register' && method === 'POST') {
+    const e = {};
+    const username = text(body?.username).toLowerCase();
+    if (!/^[a-z0-9_]{3,20}$/.test(username)) e.username = 'Логин: 3–20 латинских букв, цифр или _';
+    else if (db.users.some((u) => u.username === username)) e.username = 'Такой логин уже занят';
+    const name = requireText(e, body ?? {}, 'name', 'Имя', 2, 60);
+    const problem = auth.passwordProblem(body?.password);
+    if (problem) e.password = problem;
+    fail(e);
+    // Регистрация всегда даёт роль участника: роль из тела запроса игнорируется.
+    const created = { id: nextId(db.users), username, name, role: 'member', password: auth.hashPassword(body.password) };
+    db.users.push(created);
+    return [201, issueTokens(created)];
+  }
+  if (action === 'refresh' && method === 'POST') {
+    const data = auth.verify(body?.refreshToken, 'refresh');
+    const found = data && db.users.find((u) => u.id === data.sub);
+    if (!found) throw new HttpError(401, 'Сессия истекла. Войдите снова.');
+    return [200, issueTokens(found)];
+  }
+  if (action === 'me' && method === 'GET') {
+    if (!user) throw new HttpError(401, 'Требуется вход в систему.');
+    const found = db.users.find((u) => u.id === user.id);
+    if (!found) throw new HttpError(401, 'Пользователь не найден.');
+    return [200, auth.publicUser(found)];
+  }
+  throw new HttpError(404, `Неизвестный адрес /api/auth/${action ?? ''}`);
+}
+
+const loanResponse = (l) => {
+  const game = db.games.find((g) => g.id === l.gameId);
+  const owner = db.users.find((u) => u.id === l.userId);
+  return {
+    ...l,
+    gameTitle: game?.title ?? `Игра #${l.gameId}`,
+    userName: owner?.name ?? `Пользователь #${l.userId}`,
+    overdue: !l.returnedAt && new Date(l.dueDate) < new Date(),
+  };
+};
+
+function loansRoute(method, idPart, action, q, body, user) {
+  if (!idPart) {
+    if (method === 'GET') {
+      // Свои выдачи — участнику, все — сотруднику.
+      if (q.get('mine') === 'true') {
+        need(user, 'viewOwnLoans');
+        const items = db.loans.filter((l) => l.userId === user.id).map(loanResponse).reverse();
+        return [200, { items, page: 1, size: items.length, total: items.length }];
+      }
+      need(user, 'issueLoans');
+      const active = q.get('active') === 'true';
+      const items = db.loans.filter((l) => !active || !l.returnedAt).map(loanResponse).reverse();
+      return [200, { items, page: 1, size: items.length, total: items.length }];
+    }
+    if (method === 'POST') {
+      need(user, 'issueLoans');
+      const game = db.games.find((g) => g.id === int(body?.gameId) && !g.deletedAt);
+      const reader = db.users.find((u) => u.id === int(body?.userId) && u.role === 'member');
+      const e = {};
+      if (!game) e.gameId = 'Игра не найдена';
+      if (!reader) e.userId = 'Выберите участника клуба';
+      fail(e);
+      if (game.copiesAvailable <= 0) {
+        throw new HttpError(409, `Нет свободных коробок «${game.title}»: все ${game.copiesTotal} на руках.`);
+      }
+      game.copiesAvailable -= 1;
+      const now = Date.now();
+      const loan = { id: nextId(db.loans), gameId: game.id, userId: reader.id, issuedAt: new Date(now).toISOString(), dueDate: new Date(now + 14 * DAY).toISOString(), returnedAt: null, extensions: 0 };
+      db.loans.push(loan);
+      return [201, loanResponse(loan)];
+    }
+  }
+  const loan = db.loans.find((l) => l.id === int(idPart));
+  if (!loan) throw notFound('Выдача');
+  if (action === 'close' && method === 'POST') {
+    need(user, 'issueLoans');
+    if (loan.returnedAt) throw new HttpError(409, 'Эта выдача уже закрыта.');
+    loan.returnedAt = new Date().toISOString();
+    const game = db.games.find((g) => g.id === loan.gameId);
+    if (game && game.copiesAvailable < game.copiesTotal) game.copiesAvailable += 1;
+    return [200, loanResponse(loan)];
+  }
+  if (action === 'extend' && method === 'POST') {
+    need(user, 'extendLoan');
+    // Продлить можно только свою выдачу — проверка по токену, а не по телу запроса.
+    if (loan.userId !== user.id) throw new HttpError(403, 'Можно продлевать только свои выдачи.');
+    if (loan.returnedAt) throw new HttpError(409, 'Игра уже возвращена — продлевать нечего.');
+    if (loan.extensions >= 2) throw new HttpError(409, 'Срок можно продлить не больше двух раз.');
+    loan.dueDate = new Date(Math.max(Date.now(), new Date(loan.dueDate).getTime()) + 7 * DAY).toISOString();
+    loan.extensions += 1;
+    return [200, loanResponse(loan)];
+  }
+  throw new HttpError(405, `Метод ${method} не поддерживается для /api/loans`);
+}
+
+function adminRoute(method, idPart, action, body, user) {
+  if (idPart === 'stats' && method === 'GET') {
+    need(user, 'viewStats');
+    const active = (list) => list.filter((x) => !x.deletedAt).length;
+    return [200, {
+      games: active(db.games),
+      designers: active(db.designers),
+      genres: active(db.genres),
+      publishers: active(db.publishers),
+      members: active(db.members),
+      users: db.users.length,
+      usersByRole: Object.fromEntries(Object.keys(auth.ROLES).map((r) => [r, db.users.filter((u) => u.role === r).length])),
+      deletedRecords: ['games', 'designers', 'genres', 'publishers', 'members'].reduce((s, k) => s + db[k].filter((x) => x.deletedAt).length, 0),
+      activeLoans: db.loans.filter((l) => !l.returnedAt).length,
+      overdueLoans: db.loans.filter((l) => !l.returnedAt && new Date(l.dueDate) < new Date()).length,
+      copiesTotal: db.games.reduce((s, g) => s + g.copiesTotal, 0),
+      copiesAvailable: db.games.reduce((s, g) => s + g.copiesAvailable, 0),
+    }];
+  }
+  if (idPart === 'users') {
+    need(user, 'manageUsers');
+    if (!action && method === 'GET') return [200, { items: db.users.map(auth.publicUser) }];
+  }
+  if (idPart === 'users' && action && method === 'PUT') {
+    need(user, 'manageUsers');
+    const target = db.users.find((u) => u.id === int(action));
+    if (!target) throw notFound('Пользователь');
+    const role = text(body?.role);
+    if (!auth.ROLES[role]) throw new HttpError(422, 'Неизвестная роль', { role: 'Неизвестная роль' });
+    if (target.id === user.id) throw new HttpError(409, 'Нельзя изменить роль самому себе.');
+    target.role = role;
+    return [200, auth.publicUser(target)];
+  }
+  throw new HttpError(404, `Неизвестный адрес /api/admin/${idPart ?? ''}`);
+}
+
+/** Какое право нужно для операции над ресурсом каталога. */
+function requiredFor(name, method, idPart, action, q) {
+  if (method === 'GET') return name === 'members' ? 'viewMembers' : 'viewCatalog';
+  if (action === 'restore') return 'restore';
+  if (method === 'DELETE' && q.get('hard') === 'true') return 'hardDelete';
+  if (method === 'DELETE' || idPart === 'bulk-delete') return 'softDelete';
+  return name === 'members' ? 'manageMembers' : 'editCatalog';
+}
+
+function route(method, parts, q, body, user) {
   const [name, idPart, action] = parts;
   if (name === '__health' && method === 'GET') return [200, { status: 'ok', time: new Date().toISOString() }];
+  if (name === 'auth') return authRoute(method, idPart, body, user);
+  if (name === 'loans') return loansRoute(method, idPart, action, q, body, user);
+  if (name === 'admin') return adminRoute(method, idPart, action, body, user);
   if (name === '__reset' && method === 'POST') {
-    db = seed();
+    need(user, 'manageUsers');
+    db = freshDb();
     return [200, { status: 'reset' }];
+  }
+  // Участники клуба с ролью member — для диалога оформления выдачи.
+  if (name === 'readers' && method === 'GET') {
+    need(user, 'issueLoans');
+    return [200, { items: db.users.filter((u) => u.role === 'member').map(auth.publicUser) }];
   }
   const r = resources[name];
   if (!r) throw new HttpError(404, `Неизвестный адрес /api/${parts.join('/')}`);
+  need(user, requiredFor(name, method, idPart, action, q));
 
   if (!idPart) {
     if (method === 'GET') return [200, list(name, q)];
@@ -307,21 +493,6 @@ function route(method, parts, q, body) {
   }
   if (action === 'restore' && method === 'POST') {
     item.deletedAt = null;
-    return [200, respond(name, item)];
-  }
-  // 409: выдать игру, у которой нет свободных коробок, нельзя.
-  if (name === 'games' && action === 'checkout' && method === 'POST') {
-    if (item.copiesAvailable <= 0) {
-      throw new HttpError(409, `Нет свободных коробок «${item.title}»: все ${item.copiesTotal} на руках.`);
-    }
-    item.copiesAvailable -= 1;
-    return [200, respond(name, item)];
-  }
-  if (name === 'games' && action === 'return' && method === 'POST') {
-    if (item.copiesAvailable >= item.copiesTotal) {
-      throw new HttpError(409, `Все коробки «${item.title}» уже в клубе.`);
-    }
-    item.copiesAvailable += 1;
     return [200, respond(name, item)];
   }
   throw new HttpError(405, `Метод ${method} не поддерживается для /api/${parts.join('/')}`);
@@ -381,7 +552,12 @@ const server = http.createServer((req, res) => {
           }
         }
         const parts = url.pathname.slice('/api/'.length).split('/').filter(Boolean);
-        [status, payload] = route(req.method, parts, url.searchParams, body);
+        // Пользователь и роль — только из подписанного токена.
+        const header = req.headers.authorization ?? '';
+        const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+        const claims = auth.verify(token, 'access');
+        const user = claims ? { id: claims.sub, role: claims.role } : null;
+        [status, payload] = route(req.method, parts, url.searchParams, body, user);
       } catch (e) {
         status = e instanceof HttpError ? e.status : 500;
         payload = { message: e.message, ...(e.errors ? { errors: e.errors } : {}) };

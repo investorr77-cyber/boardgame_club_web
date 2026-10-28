@@ -4,10 +4,12 @@ import '../models/board_game.dart';
 import '../models/designer.dart';
 import '../models/genre.dart';
 import '../models/member.dart';
+import '../models/permissions.dart';
 import '../models/publisher.dart';
 import '../repositories/board_game_repository.dart';
 import '../repositories/designer_repository.dart';
 import '../repositories/reference_repositories.dart';
+import 'auth_notifier.dart';
 import 'data_changes.dart';
 
 /// Справочные данные для экранов: имена в таблицах и варианты
@@ -21,14 +23,35 @@ class ReferenceNotifier extends ChangeNotifier {
     required PublisherRepository publishers,
     required MemberRepository members,
     DataChanges? changes,
+    AuthNotifier? auth,
   })  : _gameRepo = games,
         _designerRepo = designers,
         _genreRepo = genres,
         _publisherRepo = publishers,
         _memberRepo = members,
-        _changes = changes {
+        _changes = changes,
+        _auth = auth {
     _changes?.addListener(load);
-    load();
+    _auth?.addListener(_onAuthChanged);
+    _onAuthChanged();
+  }
+
+  final AuthNotifier? _auth;
+  int? _loadedFor;
+
+  /// Справочники загружаются после входа и сбрасываются при выходе.
+  void _onAuthChanged() {
+    final user = _auth?.user;
+    if (_auth != null && user == null) {
+      _loadedFor = null;
+      _loaded = false;
+      return;
+    }
+    final key = user == null ? null : Object.hash(user.id, user.role);
+    if (_auth == null || key != _loadedFor) {
+      _loadedFor = key;
+      load();
+    }
   }
 
   final BoardGameRepository _gameRepo;
@@ -54,18 +77,32 @@ class ReferenceNotifier extends ChangeNotifier {
 
   /// Записи включая удалённые: имена нужны и для приглушённых строк.
   Future<void> load() async {
-    final results = await Future.wait([
-      _gameRepo.findAll(includeDeleted: true),
-      _designerRepo.findAll(includeDeleted: true),
-      _genreRepo.findAll(includeDeleted: true),
-      _publisherRepo.findAll(includeDeleted: true),
-      _memberRepo.findAll(includeDeleted: true),
+    if (_auth != null && !_auth.isAuthenticated) return;
+    // Недоступный роли справочник (участники клуба для роли «участник»)
+    // и сбой сети не ломают остальные: вместо них — пустой список.
+    Future<List<T>> safe<T>(Future<List<T>> Function() f) async {
+      try {
+        return await f();
+      } catch (_) {
+        return <T>[];
+      }
+    }
+
+    final canSeeMembers = _auth == null || _auth.can(Operation.viewMembers);
+    final results = await Future.wait<List<Object?>>([
+      safe(() => _gameRepo.findAll(includeDeleted: true)),
+      safe(() => _designerRepo.findAll(includeDeleted: true)),
+      safe(() => _genreRepo.findAll(includeDeleted: true)),
+      safe(() => _publisherRepo.findAll(includeDeleted: true)),
+      canSeeMembers
+          ? safe(() => _memberRepo.findAll(includeDeleted: true))
+          : Future.value(const <Member>[]),
     ]);
-    _games = results[0] as List<BoardGame>;
-    _designers = results[1] as List<Designer>;
-    _genres = results[2] as List<Genre>;
-    _publishers = results[3] as List<Publisher>;
-    _members = results[4] as List<Member>;
+    _games = results[0].cast<BoardGame>();
+    _designers = results[1].cast<Designer>();
+    _genres = results[2].cast<Genre>();
+    _publishers = results[3].cast<Publisher>();
+    _members = results[4].cast<Member>();
     _loaded = true;
     notifyListeners();
   }
@@ -73,6 +110,7 @@ class ReferenceNotifier extends ChangeNotifier {
   @override
   void dispose() {
     _changes?.removeListener(load);
+    _auth?.removeListener(_onAuthChanged);
     super.dispose();
   }
 

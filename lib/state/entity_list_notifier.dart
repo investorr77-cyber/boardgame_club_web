@@ -156,6 +156,9 @@ abstract class EntityListNotifier<T, Q> extends ChangeNotifier {
     } on ConflictException catch (e) {
       // 409 от сервера: на запись ссылаются другие — показываем как отказ.
       return (value: null, refusal: e.message);
+    } on ForbiddenException catch (e) {
+      // 403: роль не позволяет — сообщение, а не сломанный список.
+      return (value: null, refusal: e.message);
     } catch (e) {
       _error = e.toString();
       _status = LoadStatus.error;

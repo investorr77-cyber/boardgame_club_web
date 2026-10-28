@@ -3,6 +3,8 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../models/list_query.dart';
+import '../models/permissions.dart';
+import '../state/auth_notifier.dart';
 import '../state/entity_list_notifier.dart';
 import '../state/load_status.dart';
 import '../state/reference_notifier.dart';
@@ -18,6 +20,7 @@ import '../widgets/search_field.dart';
 import '../widgets/selection_bar.dart';
 import '../widgets/simulate_error_action.dart';
 import '../widgets/state_views.dart';
+import '../widgets/user_menu.dart';
 
 /// Изменение условий отбора; null — «не менять» (page при этом сбросится в 1).
 typedef QueryUpdate<Q> = Q Function(
@@ -88,6 +91,13 @@ class _EntityListScreenState<T, Q extends ListQuery>
 
   EntityListNotifier<T, Q> _notifier() =>
       context.read<EntityListNotifier<T, Q>>();
+
+  // Скрытие недоступного — удобство интерфейса, а не защита:
+  // сервер всё равно проверит роль по токену и ответит 403.
+  bool get _canEdit => context.read<AuthNotifier>().can(
+      _config.path == '/members' ? Operation.manageMembers : Operation.editCatalog);
+
+  bool get _canAdmin => context.read<AuthNotifier>().can(Operation.hardDelete);
 
   @override
   void initState() {
@@ -210,7 +220,7 @@ class _EntityListScreenState<T, Q extends ListQuery>
         icon: const Icon(Icons.open_in_new),
         onPressed: () => context.push('${_config.path}/$id'),
       ),
-      if (!_config.isDeleted(item)) ...[
+      if (!_config.isDeleted(item) && _canEdit) ...[
         IconButton(
           tooltip: 'Изменить',
           icon: const Icon(Icons.edit_outlined),
@@ -221,7 +231,7 @@ class _EntityListScreenState<T, Q extends ListQuery>
           icon: const Icon(Icons.delete_outline),
           onPressed: () => _softDelete(item),
         ),
-      ] else ...[
+      ] else if (_config.isDeleted(item) && _canAdmin) ...[
         IconButton(
           tooltip: 'Восстановить',
           icon: const Icon(Icons.restore),
@@ -259,8 +269,8 @@ class _EntityListScreenState<T, Q extends ListQuery>
           title: _config.nameOf,
           subtitle: (item) => _config.subtitleOf(item, refs),
           selected: notifier.selected,
-          onToggleSelect: notifier.toggleSelection,
-          onSelectAll: (_) => notifier.toggleSelectAllOnPage(),
+          onToggleSelect: _canEdit ? notifier.toggleSelection : null,
+          onSelectAll: _canEdit ? (_) => notifier.toggleSelectAllOnPage() : null,
           onTap: (item) => context.push('${_config.path}/${_config.idOf(item)}'),
           actions: _actions,
           isMuted: _config.isDeleted,
@@ -271,8 +281,8 @@ class _EntityListScreenState<T, Q extends ListQuery>
         items: items,
         idOf: _config.idOf,
         selected: notifier.selected,
-        onToggleSelect: notifier.toggleSelection,
-        onSelectAll: (_) => notifier.toggleSelectAllOnPage(),
+        onToggleSelect: _canEdit ? notifier.toggleSelection : null,
+        onSelectAll: _canEdit ? (_) => notifier.toggleSelectAllOnPage() : null,
         sortField: widget.query.sortField,
         sortAscending: widget.query.sortAscending,
         onSort: _sort,
@@ -301,13 +311,17 @@ class _EntityListScreenState<T, Q extends ListQuery>
     final query = widget.query;
     final result = notifier.result;
     final wide = MediaQuery.sizeOf(context).width >= 600;
+    context.watch<AuthNotifier>(); // перестроить при смене пользователя или роли
+    final canEdit = _canEdit;
     return Scaffold(
       drawer: AppDrawer(current: _config.path),
       appBar: AppBar(
         title: Text(_config.title),
         actions: [
           SimulateErrorAction(onToggled: notifier.load),
-          if (wide)
+          if (!canEdit)
+            const SizedBox.shrink()
+          else if (wide)
             Padding(
               padding: const EdgeInsets.only(right: 8),
               child: FilledButton.icon(
@@ -322,6 +336,7 @@ class _EntityListScreenState<T, Q extends ListQuery>
               icon: const Icon(Icons.add),
               onPressed: () => context.push('${_config.path}/new'),
             ),
+          const UserMenu(),
         ],
       ),
       body: ListPageLayout(
@@ -336,7 +351,8 @@ class _EntityListScreenState<T, Q extends ListQuery>
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             ..._config.filters(query, refs, _go),
-            ShowDeletedSwitch(
+            if (_canAdmin)
+              ShowDeletedSwitch(
               value: query.includeDeleted,
               onChanged: (v) => _go(_config.update(query, includeDeleted: v)),
             ),

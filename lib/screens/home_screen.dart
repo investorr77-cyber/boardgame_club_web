@@ -2,12 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../models/permissions.dart';
+import '../state/auth_notifier.dart';
 import '../state/reference_notifier.dart';
 import '../state/storage_notifier.dart';
 import '../widgets/app_drawer.dart';
 import '../widgets/confirm_dialog.dart';
+import '../widgets/user_menu.dart';
 
-/// Главная: пять разделов каталога, сообщения о хранилище и сброс данных.
+/// Главная. Набор разделов зависит от роли: у каждой роли свой экран,
+/// недоступный остальным.
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
@@ -16,8 +20,7 @@ class HomeScreen extends StatelessWidget {
       context,
       title: 'Вернуть начальный набор?',
       message: 'Все созданные и изменённые записи будут стёрты на сервере, '
-          'вернутся исходные 30 игр, 12 авторов, 7 жанров, '
-          '6 издателей и 12 участников. Это действие необратимо.',
+          'вернутся исходные данные. Это действие необратимо.',
       confirmLabel: 'Сбросить',
       destructive: true,
     );
@@ -31,89 +34,92 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final auth = context.watch<AuthNotifier>();
     final refs = context.watch<ReferenceNotifier>();
-    final storage = context.watch<StorageNotifier>();
+    final user = auth.user;
+    String count(List<Object?> items) => refs.loaded ? 'Записей: ${items.length}' : '…';
     final sections = [
-      ('/games', 'Игры', Icons.casino_outlined, refs.games),
-      ('/designers', 'Авторы', Icons.person_outline, refs.designers),
-      ('/genres', 'Жанры', Icons.category_outlined, refs.genres),
-      ('/publishers', 'Издатели', Icons.business_outlined, refs.publishers),
-      ('/members', 'Участники клуба', Icons.badge_outlined, refs.members),
+      ('/games', 'Игры', Icons.casino_outlined, count(refs.games), Operation.viewCatalog),
+      ('/designers', 'Авторы', Icons.person_outline, count(refs.designers), Operation.viewCatalog),
+      ('/genres', 'Жанры', Icons.category_outlined, count(refs.genres), Operation.viewCatalog),
+      ('/publishers', 'Издатели', Icons.business_outlined, count(refs.publishers), Operation.viewCatalog),
+      ('/my-loans', 'Мои выдачи', Icons.bookmark_outline, 'Продление срока', Operation.viewOwnLoans),
+      ('/members', 'Участники клуба', Icons.badge_outlined, count(refs.members), Operation.viewMembers),
+      ('/loans', 'Выдачи', Icons.outbox_outlined, 'Оформление и закрытие', Operation.issueLoans),
+      ('/admin/users', 'Пользователи и роли', Icons.manage_accounts_outlined, 'Назначение ролей', Operation.manageUsers),
+      ('/admin/stats', 'Статистика', Icons.insights_outlined, 'Сводка по клубу', Operation.viewStats),
     ];
+    final roleHint = switch (user?.role) {
+      null => '',
+      _ when auth.can(Operation.viewOwnLoans) =>
+        'Каталог клуба и ваши выдачи: срок можно продлить.',
+      _ when auth.can(Operation.issueLoans) =>
+        'Управление каталогом и справочниками, выдачи, участники клуба.',
+      _ => 'Пользователи и роли, восстановление и физическое удаление записей, статистика.',
+    };
     return Scaffold(
       drawer: const AppDrawer(current: '/'),
-      appBar: AppBar(title: const Text('Клуб настольных игр')),
+      appBar: AppBar(title: const Text('Клуб настольных игр'), actions: const [UserMenu()]),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 720),
+            constraints: const BoxConstraints(maxWidth: 760),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                for (final notice in storage.notices)
-                  Card(
-                    color: theme.colorScheme.tertiaryContainer,
-                    child: ListTile(
-                      leading: const Icon(Icons.info_outline),
-                      title: Text(notice),
-                      trailing: IconButton(
-                        tooltip: 'Скрыть',
-                        icon: const Icon(Icons.close),
-                        onPressed: storage.dismissNotices,
-                      ),
-                    ),
-                  ),
-                Icon(Icons.extension, size: 64, color: theme.colorScheme.primary),
+                Icon(Icons.extension, size: 56, color: theme.colorScheme.primary),
                 const SizedBox(height: 12),
-                Text('Каталог клуба',
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.headlineMedium),
+                Text('Здравствуйте, ${user?.name ?? 'гость'}!',
+                    textAlign: TextAlign.center, style: theme.textTheme.headlineSmall),
+                const SizedBox(height: 4),
+                Text('Роль: ${user?.role.title ?? '—'}',
+                    textAlign: TextAlign.center, style: theme.textTheme.titleMedium),
                 const SizedBox(height: 8),
-                const Text(
-                  'Пять разделов со связями. Данные хранятся на сервере '
-                  '(REST API), поиск и пагинация выполняются на сервере.',
-                  textAlign: TextAlign.center,
-                ),
+                Text(roleHint, textAlign: TextAlign.center),
                 const SizedBox(height: 24),
                 Wrap(
                   spacing: 12,
                   runSpacing: 12,
                   alignment: WrapAlignment.center,
                   children: [
-                    for (final (path, title, icon, items) in sections)
-                      SizedBox(
-                        width: 220,
-                        child: Card(
-                          clipBehavior: Clip.antiAlias,
-                          child: InkWell(
-                            onTap: () => context.go(path),
-                            child: Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Column(
-                                children: [
-                                  Icon(icon, size: 36, color: theme.colorScheme.primary),
-                                  const SizedBox(height: 8),
-                                  Text(title, style: theme.textTheme.titleMedium),
-                                  Text(refs.loaded ? 'Записей: ${items.length}' : '…',
-                                      style: theme.textTheme.bodySmall),
-                                ],
+                    for (final (path, title, icon, subtitle, op) in sections)
+                      if (auth.can(op))
+                        SizedBox(
+                          width: 220,
+                          child: Card(
+                            clipBehavior: Clip.antiAlias,
+                            child: InkWell(
+                              onTap: () => context.go(path),
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Column(
+                                  children: [
+                                    Icon(icon, size: 36, color: theme.colorScheme.primary),
+                                    const SizedBox(height: 8),
+                                    Text(title,
+                                        textAlign: TextAlign.center,
+                                        style: theme.textTheme.titleMedium),
+                                    Text(subtitle, style: theme.textTheme.bodySmall),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
                   ],
                 ),
-                const SizedBox(height: 24),
-                Center(
-                  child: TextButton.icon(
-                    onPressed: () => _reset(context),
-                    icon: const Icon(Icons.restart_alt),
-                    label: const Text('Вернуть начальный набор данных'),
+                if (auth.can(Operation.manageUsers)) ...[
+                  const SizedBox(height: 24),
+                  Center(
+                    child: TextButton.icon(
+                      onPressed: () => _reset(context),
+                      icon: const Icon(Icons.restart_alt),
+                      label: const Text('Вернуть начальный набор данных'),
+                    ),
                   ),
-                ),
+                ],
               ],
             ),
           ),

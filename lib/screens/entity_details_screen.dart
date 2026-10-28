@@ -3,6 +3,8 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../models/board_game.dart';
+import '../models/permissions.dart';
+import '../state/auth_notifier.dart';
 import '../state/details_notifiers.dart';
 import '../state/load_status.dart';
 import '../state/reference_notifier.dart';
@@ -98,7 +100,11 @@ class _EntityDetailsScreenState<T> extends State<EntityDetailsScreen<T>> {
         leading: BackButton(onPressed: _back),
         title: Text(item != null ? _config.titleOf(item) : _config.entityTitle),
         actions: [
-          if (item != null && !_config.isDeleted(item))
+          if (item != null &&
+              !_config.isDeleted(item) &&
+              context.watch<AuthNotifier>().can(_config.path == '/members'
+                  ? Operation.manageMembers
+                  : Operation.editCatalog))
             IconButton(
               tooltip: 'Изменить',
               icon: const Icon(Icons.edit_outlined),

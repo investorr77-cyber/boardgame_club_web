@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import '../models/board_game.dart';
 import '../models/designer.dart';
 import '../models/genre.dart';
 import '../models/member.dart';
+import '../models/permissions.dart';
 import '../models/publisher.dart';
+import '../state/auth_notifier.dart';
 import '../state/details_notifiers.dart';
+import 'club_screens.dart';
 import 'entity_details_screen.dart';
 
 // Настройки карточек пяти сущностей. Код экрана общий (EntityDetailsScreen).
@@ -36,34 +40,16 @@ final gameDetailsConfig = EntityDetailsConfig<BoardGame>(
     final designers =
         notifier is GameDetailsNotifier ? notifier.designers : const <Designer>[];
     final titleStyle = Theme.of(context).textTheme.titleMedium;
-    final busy = notifier is GameDetailsNotifier && notifier.busy;
-    Future<void> run(Future<String> Function() action) async {
-      final message = await action();
-      if (message.isNotEmpty && context.mounted) {
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(SnackBar(content: Text(message)));
-      }
-    }
+    // Кнопку выдачи видит только сотрудник: участнику она всё равно не разрешена.
+    final canIssue = context.watch<AuthNotifier>().can(Operation.issueLoans);
 
     return [
-      if (notifier is GameDetailsNotifier && !g.isDeleted) ...[
+      if (canIssue && !g.isDeleted) ...[
         const SizedBox(height: 12),
-        Wrap(
-          spacing: 12,
-          runSpacing: 8,
-          children: [
-            FilledButton.icon(
-              onPressed: busy ? null : () => run(notifier.checkout),
-              icon: const Icon(Icons.outbox_outlined),
-              label: const Text('Выдать коробку'),
-            ),
-            OutlinedButton.icon(
-              onPressed: busy ? null : () => run(notifier.giveBack),
-              icon: const Icon(Icons.move_to_inbox_outlined),
-              label: const Text('Вернуть коробку'),
-            ),
-          ],
+        FilledButton.icon(
+          onPressed: () => showIssueLoanDialog(context, gameId: g.id, title: g.title),
+          icon: const Icon(Icons.outbox_outlined),
+          label: Text('Оформить выдачу (свободно ${g.copiesAvailable})'),
         ),
       ],
       const SizedBox(height: 16),
