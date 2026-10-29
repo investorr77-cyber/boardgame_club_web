@@ -85,7 +85,8 @@ class EntityCardList<T> extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(title(item), style: theme.textTheme.titleMedium),
+                            Text(title(item),
+                                style: theme.textTheme.titleMedium),
                             if (text != null)
                               Text(text, style: theme.textTheme.bodySmall),
                           ],

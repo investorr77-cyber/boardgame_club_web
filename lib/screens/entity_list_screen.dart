@@ -67,8 +67,7 @@ class EntityListConfig<T, Q extends ListQuery> {
 
   /// Фильтры сущности (переключатель удалённых и сброс добавляются сами).
   final List<Widget> Function(
-          Q query, ReferenceNotifier refs, ValueChanged<Q> apply)
-      filters;
+      Q query, ReferenceNotifier refs, ValueChanged<Q> apply) filters;
   final int Function(Q query) activeFilterCount;
 }
 
@@ -76,7 +75,8 @@ class EntityListConfig<T, Q extends ListQuery> {
 /// пагинация, логическое и физическое удаление, восстановление, множественное
 /// удаление и состояние в адресной строке. [query] построен из адреса.
 class EntityListScreen<T, Q extends ListQuery> extends StatefulWidget {
-  const EntityListScreen({super.key, required this.config, required this.query});
+  const EntityListScreen(
+      {super.key, required this.config, required this.query});
 
   final EntityListConfig<T, Q> config;
   final Q query;
@@ -94,8 +94,10 @@ class _EntityListScreenState<T, Q extends ListQuery>
 
   // Скрытие недоступного — удобство интерфейса, а не защита:
   // сервер всё равно проверит роль по токену и ответит 403.
-  bool get _canEdit => context.read<AuthNotifier>().can(
-      _config.path == '/members' ? Operation.manageMembers : Operation.editCatalog);
+  bool get _canEdit =>
+      context.read<AuthNotifier>().can(_config.path == '/members'
+          ? Operation.manageMembers
+          : Operation.editCatalog);
 
   bool get _canAdmin => context.read<AuthNotifier>().can(Operation.hardDelete);
 
@@ -128,8 +130,9 @@ class _EntityListScreenState<T, Q extends ListQuery>
   /// Любое изменение условий отбора — переход по новому адресу.
   void _go(Q query) {
     final params = query.toQueryParameters();
-    context.go(Uri(path: _config.path, queryParameters: params.isEmpty ? null : params)
-        .toString());
+    context.go(
+        Uri(path: _config.path, queryParameters: params.isEmpty ? null : params)
+            .toString());
   }
 
   /// После удаления notifier мог перейти на предыдущую страницу — переносим это в адрес.
@@ -247,12 +250,14 @@ class _EntityListScreenState<T, Q extends ListQuery>
     ];
   }
 
-  Widget _buildContent(EntityListNotifier<T, Q> notifier, ReferenceNotifier refs) {
+  Widget _buildContent(
+      EntityListNotifier<T, Q> notifier, ReferenceNotifier refs) {
     final items = notifier.result.items;
     final status = notifier.status;
     if (status == LoadStatus.error) {
       return ErrorView(
-          message: notifier.error ?? 'Неизвестная ошибка', onRetry: notifier.load);
+          message: notifier.error ?? 'Неизвестная ошибка',
+          onRetry: notifier.load);
     }
     if (status == LoadStatus.idle ||
         (status == LoadStatus.loading && items.isEmpty)) {
@@ -270,8 +275,10 @@ class _EntityListScreenState<T, Q extends ListQuery>
           subtitle: (item) => _config.subtitleOf(item, refs),
           selected: notifier.selected,
           onToggleSelect: _canEdit ? notifier.toggleSelection : null,
-          onSelectAll: _canEdit ? (_) => notifier.toggleSelectAllOnPage() : null,
-          onTap: (item) => context.push('${_config.path}/${_config.idOf(item)}'),
+          onSelectAll:
+              _canEdit ? (_) => notifier.toggleSelectAllOnPage() : null,
+          onTap: (item) =>
+              context.push('${_config.path}/${_config.idOf(item)}'),
           actions: _actions,
           isMuted: _config.isDeleted,
         );
@@ -311,7 +318,8 @@ class _EntityListScreenState<T, Q extends ListQuery>
     final query = widget.query;
     final result = notifier.result;
     final wide = MediaQuery.sizeOf(context).width >= 600;
-    context.watch<AuthNotifier>(); // перестроить при смене пользователя или роли
+    context
+        .watch<AuthNotifier>(); // перестроить при смене пользователя или роли
     final canEdit = _canEdit;
     return Scaffold(
       drawer: AppDrawer(current: _config.path),
@@ -353,9 +361,9 @@ class _EntityListScreenState<T, Q extends ListQuery>
             ..._config.filters(query, refs, _go),
             if (_canAdmin)
               ShowDeletedSwitch(
-              value: query.includeDeleted,
-              onChanged: (v) => _go(_config.update(query, includeDeleted: v)),
-            ),
+                value: query.includeDeleted,
+                onChanged: (v) => _go(_config.update(query, includeDeleted: v)),
+              ),
             TextButton.icon(
               onPressed: _resetFilters,
               icon: const Icon(Icons.filter_alt_off),

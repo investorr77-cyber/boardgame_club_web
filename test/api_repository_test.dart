@@ -71,7 +71,8 @@ Map<String, dynamic> gameJson(int id, {String title = 'Каркассон'}) => 
 }
 
 void main() {
-  test('find: условия отбора уходят на сервер, ответ разбирается в PageResult', () async {
+  test('find: условия отбора уходят на сервер, ответ разбирается в PageResult',
+      () async {
     final (repo, adapter) = repoWith((o) async => json(200, {
           'items': [gameJson(1), gameJson(2, title: 'Азул')],
           'page': 2,
@@ -79,7 +80,11 @@ void main() {
           'total': 12,
         }));
     final result = await repo.find(const GameQuery(
-        search: ' кар ', genreId: 5, sortField: 'year', sortAscending: false, page: 2));
+        search: ' кар ',
+        genreId: 5,
+        sortField: 'year',
+        sortAscending: false,
+        page: 2));
 
     final params = adapter.requests.single.queryParameters;
     expect(adapter.requests.single.path, '/games');
@@ -106,29 +111,31 @@ void main() {
         }));
     await expectLater(
       repo.create(BoardGame.fromJson(gameJson(0))),
-      throwsA(isA<ValidationException>().having(
-          (e) => e.errors['barcode'], 'errors[barcode]', contains('штрихкодом'))),
+      throwsA(isA<ValidationException>().having((e) => e.errors['barcode'],
+          'errors[barcode]', contains('штрихкодом'))),
     );
   });
 
-  test('409: конфликт приходит как ConflictException с текстом сервера', () async {
+  test('409: конфликт приходит как ConflictException с текстом сервера',
+      () async {
     final (repo, _) = repoWith((o) async =>
         json(409, {'message': 'Нет свободных коробок «Пандемия: Наследие»'}));
     await expectLater(
       repo.checkout(8),
-      throwsA(isA<ConflictException>()
-          .having((e) => e.message, 'message', contains('Нет свободных коробок'))),
+      throwsA(isA<ConflictException>().having(
+          (e) => e.message, 'message', contains('Нет свободных коробок'))),
     );
   });
 
   test('404 в findById — null, а не исключение', () async {
-    final (repo, _) = repoWith((o) async => json(404, {'message': 'не найдена'}));
+    final (repo, _) =
+        repoWith((o) async => json(404, {'message': 'не найдена'}));
     expect(await repo.findById(9999), isNull);
   });
 
   test('500 — ServerException с текстом сервера', () async {
-    final (repo, _) =
-        repoWith((o) async => json(500, {'message': 'Сымитированная ошибка сервера (500)'}));
+    final (repo, _) = repoWith((o) async =>
+        json(500, {'message': 'Сымитированная ошибка сервера (500)'}));
     await expectLater(
       repo.find(const GameQuery()),
       throwsA(isA<ServerException>()
@@ -136,19 +143,23 @@ void main() {
     );
   });
 
-  test('сервер недоступен: NetworkException, чтение повторяется 3 раза', () async {
-    final (repo, adapter) = repoWith((o) async => throw DioException.connectionError(
-        requestOptions: o, reason: 'Connection refused'));
+  test('сервер недоступен: NetworkException, чтение повторяется 3 раза',
+      () async {
+    final (repo, adapter) = repoWith((o) async =>
+        throw DioException.connectionError(
+            requestOptions: o, reason: 'Connection refused'));
     await expectLater(
       repo.find(const GameQuery()),
-      throwsA(isA<NetworkException>().having((e) => e.message, 'message', contains('CORS'))),
+      throwsA(isA<NetworkException>()
+          .having((e) => e.message, 'message', contains('CORS'))),
     );
     expect(adapter.requests, hasLength(3));
   });
 
   test('создание записи при сбое сети не повторяется', () async {
-    final (repo, adapter) = repoWith((o) async => throw DioException.connectionError(
-        requestOptions: o, reason: 'Connection refused'));
+    final (repo, adapter) = repoWith((o) async =>
+        throw DioException.connectionError(
+            requestOptions: o, reason: 'Connection refused'));
     await expectLater(repo.create(BoardGame.fromJson(gameJson(0))),
         throwsA(isA<NetworkException>()));
     expect(adapter.requests, hasLength(1));
@@ -168,7 +179,8 @@ void main() {
     final second = repo.find(const GameQuery(search: 'война'));
     await expectLater(
       first,
-      throwsA(isA<NetworkException>().having((e) => e.message, 'message', 'Запрос отменён.')),
+      throwsA(isA<NetworkException>()
+          .having((e) => e.message, 'message', 'Запрос отменён.')),
     );
     expect((await second).items.single.title, 'война');
   });

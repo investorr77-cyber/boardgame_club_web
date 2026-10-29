@@ -72,7 +72,8 @@ class _EditFrameState<T> extends State<EditFrame<T>> {
       return _frame(MessageView(
         icon: Icons.search_off,
         title: 'Запись не найдена',
-        message: 'Некорректный идентификатор «${widget.idParam}»: ожидается число.',
+        message:
+            'Некорректный идентификатор «${widget.idParam}»: ожидается число.',
       ));
     }
     final notifier = context.watch<EntityEditNotifier<T>>();
@@ -114,7 +115,8 @@ void closeForm(
 }) {
   if (saved) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(created ? 'Запись создана' : 'Изменения сохранены')),
+      SnackBar(
+          content: Text(created ? 'Запись создана' : 'Изменения сохранены')),
     );
   }
   if (saved && created && savedId != null) {

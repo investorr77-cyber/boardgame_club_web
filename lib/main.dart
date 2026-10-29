@@ -55,7 +55,8 @@ Future<void> main() async {
     simulateFailure: () => failure.enabled,
     tokenProvider: () => auth.accessToken,
     refreshSession: auth.refreshTokens,
-    onSessionExpired: () => auth.logout(reason: 'Сессия истекла. Войдите снова.'),
+    onSessionExpired: () =>
+        auth.logout(reason: 'Сессия истекла. Войдите снова.'),
   );
   final loanApi = LoanApi(dio);
   final adminApi = AdminApi(dio);
@@ -74,11 +75,14 @@ Future<void> main() async {
       providers: [
         ChangeNotifierProvider<AuthNotifier>.value(value: auth),
         ChangeNotifierProvider<FailureSimulator>.value(value: failure),
-        ChangeNotifierProvider<MyLoansNotifier>(create: (_) => MyLoansNotifier(loanApi)),
+        ChangeNotifierProvider<MyLoansNotifier>(
+            create: (_) => MyLoansNotifier(loanApi)),
         ChangeNotifierProvider<LoansNotifier>(
             create: (_) => LoansNotifier(loanApi, changes: changes)),
-        ChangeNotifierProvider<UsersNotifier>(create: (_) => UsersNotifier(adminApi)),
-        ChangeNotifierProvider<StatsNotifier>(create: (_) => StatsNotifier(adminApi)),
+        ChangeNotifierProvider<UsersNotifier>(
+            create: (_) => UsersNotifier(adminApi)),
+        ChangeNotifierProvider<StatsNotifier>(
+            create: (_) => StatsNotifier(adminApi)),
         ChangeNotifierProvider<DataChanges>.value(value: changes),
         Provider<Dio>.value(value: dio),
         Provider<BoardGameRepository>.value(value: games),
@@ -114,28 +118,36 @@ Future<void> main() async {
         ),
         ChangeNotifierProvider<EntityListNotifier<Genre, SimpleQuery>>(
           create: (_) => SimpleListNotifier<Genre>(genres,
-              defaultSortField: 'name', idOfItem: (g) => g.id, changes: changes),
+              defaultSortField: 'name',
+              idOfItem: (g) => g.id,
+              changes: changes),
         ),
         ChangeNotifierProvider<EntityListNotifier<Publisher, SimpleQuery>>(
-          create: (_) => PublisherListNotifier(publishers, games, changes: changes),
+          create: (_) =>
+              PublisherListNotifier(publishers, games, changes: changes),
         ),
         ChangeNotifierProvider<EntityListNotifier<Member, SimpleQuery>>(
           create: (_) => SimpleListNotifier<Member>(members,
-              defaultSortField: 'lastName', idOfItem: (m) => m.id, changes: changes),
+              defaultSortField: 'lastName',
+              idOfItem: (m) => m.id,
+              changes: changes),
         ),
         // Карточки
         ChangeNotifierProvider<EntityDetailsNotifier<BoardGame>>(
-          create: (_) => GameDetailsNotifier(games, designers, changes: changes),
+          create: (_) =>
+              GameDetailsNotifier(games, designers, changes: changes),
         ),
         ChangeNotifierProvider<EntityDetailsNotifier<Designer>>(
-          create: (_) => DesignerDetailsNotifier(designers, games, changes: changes),
+          create: (_) =>
+              DesignerDetailsNotifier(designers, games, changes: changes),
         ),
         ChangeNotifierProvider<EntityDetailsNotifier<Genre>>(
           create: (_) => EntityDetailsNotifier<Genre>(
             load: genres.findById,
-            related: (genre) async => (await games.findAll(includeDeleted: true))
-                .where((g) => g.genreIds.contains(genre.id))
-                .toList(),
+            related: (genre) async =>
+                (await games.findAll(includeDeleted: true))
+                    .where((g) => g.genreIds.contains(genre.id))
+                    .toList(),
             changes: changes,
           ),
         ),
@@ -158,13 +170,15 @@ Future<void> main() async {
           create: (_) => GameEditNotifier(games, changes: changes),
         ),
         ChangeNotifierProvider<EntityEditNotifier<Designer>>(
-          create: (_) => EntityEditNotifier<Designer>(designers, changes: changes),
+          create: (_) =>
+              EntityEditNotifier<Designer>(designers, changes: changes),
         ),
         ChangeNotifierProvider<EntityEditNotifier<Genre>>(
           create: (_) => EntityEditNotifier<Genre>(genres, changes: changes),
         ),
         ChangeNotifierProvider<EntityEditNotifier<Publisher>>(
-          create: (_) => EntityEditNotifier<Publisher>(publishers, changes: changes),
+          create: (_) =>
+              EntityEditNotifier<Publisher>(publishers, changes: changes),
         ),
         ChangeNotifierProvider<EntityEditNotifier<Member>>(
           create: (_) => MemberEditNotifier(members, changes: changes),
@@ -219,14 +233,17 @@ class _BoardGameClubAppState extends State<BoardGameClubApp> {
           enabled: auth.isAuthenticated,
           timeout: auth.inactivityTimeout,
           onActivity: auth.touch,
-          onWarning: () => _messengerKey.currentState?.showSnackBar(const SnackBar(
-            content: Text('Сеанс завершится через 30 секунд из-за бездействия.'),
+          onWarning: () =>
+              _messengerKey.currentState?.showSnackBar(const SnackBar(
+            content:
+                Text('Сеанс завершится через 30 секунд из-за бездействия.'),
             duration: Duration(seconds: 25),
           )),
           onTimeout: () {
             _messengerKey.currentState?.hideCurrentSnackBar();
-            auth.logout(reason: 'Сеанс завершён из-за бездействия '
-                '( мин без действий).');
+            auth.logout(
+                reason: 'Сеанс завершён из-за бездействия '
+                    '( мин без действий).');
           },
           child: child ?? const SizedBox.shrink(),
         );

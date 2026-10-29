@@ -102,17 +102,20 @@ class DesignerFormScreen extends StatelessWidget {
             FieldSpec(
               name: 'lastName',
               label: 'Фамилия',
-              validator: all([notEmpty(), minLength(2), maxLength(40), letters()]),
+              validator:
+                  all([notEmpty(), minLength(2), maxLength(40), letters()]),
             ),
             FieldSpec(
               name: 'firstName',
               label: 'Имя',
-              validator: all([notEmpty(), minLength(2), maxLength(40), letters()]),
+              validator:
+                  all([notEmpty(), minLength(2), maxLength(40), letters()]),
             ),
             FieldSpec(
               name: 'country',
               label: 'Страна',
-              validator: all([notEmpty(), minLength(2), maxLength(40), letters()]),
+              validator:
+                  all([notEmpty(), minLength(2), maxLength(40), letters()]),
             ),
             FieldSpec(
               name: 'birthYear',
@@ -154,8 +157,9 @@ class GenreFormScreen extends StatelessWidget {
         item: g,
         title: title,
         listPath: '/genres',
-        initialValues:
-            g == null ? const {} : {'name': g.name, 'description': g.description},
+        initialValues: g == null
+            ? const {}
+            : {'name': g.name, 'description': g.description},
         fields: [
           FieldGroup(fields: [
             FieldSpec(
@@ -220,7 +224,8 @@ class PublisherFormScreen extends StatelessWidget {
             FieldSpec(
               name: 'country',
               label: 'Страна',
-              validator: all([notEmpty(), minLength(2), maxLength(40), letters()]),
+              validator:
+                  all([notEmpty(), minLength(2), maxLength(40), letters()]),
             ),
             FieldSpec(
               name: 'foundedYear',

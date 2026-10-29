@@ -30,13 +30,16 @@ class _AuthFrame extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Icon(Icons.extension, size: 48, color: theme.colorScheme.primary),
+                    Icon(Icons.extension,
+                        size: 48, color: theme.colorScheme.primary),
                     const SizedBox(height: 8),
                     Text('Клуб настольных игр',
-                        textAlign: TextAlign.center, style: theme.textTheme.titleMedium),
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.titleMedium),
                     const SizedBox(height: 4),
                     Text(title,
-                        textAlign: TextAlign.center, style: theme.textTheme.headlineSmall),
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.headlineSmall),
                     const SizedBox(height: 20),
                     child,
                   ],
@@ -70,7 +73,9 @@ class _Banner extends StatelessWidget {
       child: Row(
         children: [
           Icon(error ? Icons.error_outline : Icons.info_outline,
-              color: error ? scheme.onErrorContainer : scheme.onSecondaryContainer),
+              color: error
+                  ? scheme.onErrorContainer
+                  : scheme.onSecondaryContainer),
           const SizedBox(width: 8),
           Expanded(child: Text(text)),
         ],
@@ -159,7 +164,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 border: const OutlineInputBorder(),
                 suffixIcon: IconButton(
                   tooltip: _obscure ? 'Показать пароль' : 'Скрыть пароль',
-                  icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off),
+                  icon:
+                      Icon(_obscure ? Icons.visibility : Icons.visibility_off),
                   onPressed: () => setState(() => _obscure = !_obscure),
                 ),
               ),
@@ -170,7 +176,9 @@ class _LoginScreenState extends State<LoginScreen> {
               onPressed: _saving ? null : _submit,
               child: _saving
                   ? const SizedBox(
-                      width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2))
                   : const Text('Войти'),
             ),
             const SizedBox(height: 8),
@@ -222,7 +230,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
-  FormFieldValidator<String> _withServer(String field, FormFieldValidator<String> v) =>
+  FormFieldValidator<String> _withServer(
+          String field, FormFieldValidator<String> v) =>
       (value) => _serverErrors[field] ?? v(value);
 
   Future<void> _submit() async {
@@ -282,13 +291,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 prefixIcon: Icon(Icons.badge_outlined),
                 border: OutlineInputBorder(),
               ),
-              validator: _withServer('name', all([notEmpty(), minLength(2), maxLength(60)])),
+              validator: _withServer(
+                  'name', all([notEmpty(), minLength(2), maxLength(60)])),
             ),
             const SizedBox(height: 16),
             TextFormField(
               controller: _password,
               obscureText: true,
-              onChanged: (_) => setState(() {}), // перерисовать список требований
+              onChanged: (_) =>
+                  setState(() {}), // перерисовать список требований
               decoration: const InputDecoration(
                 labelText: 'Пароль',
                 prefixIcon: Icon(Icons.lock_outline),
@@ -303,7 +314,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 child: Row(
                   children: [
                     Icon(
-                      ok(password) ? Icons.check_circle : Icons.radio_button_unchecked,
+                      ok(password)
+                          ? Icons.check_circle
+                          : Icons.radio_button_unchecked,
                       size: 18,
                       color: ok(password) ? Colors.green : scheme.outline,
                     ),
@@ -321,14 +334,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 prefixIcon: Icon(Icons.lock_outline),
                 border: OutlineInputBorder(),
               ),
-              validator: (v) => v != _password.text ? 'Пароли не совпадают' : null,
+              validator: (v) =>
+                  v != _password.text ? 'Пароли не совпадают' : null,
             ),
             const SizedBox(height: 20),
             FilledButton(
               onPressed: _saving ? null : _submit,
               child: _saving
                   ? const SizedBox(
-                      width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2))
                   : const Text('Зарегистрироваться'),
             ),
             const SizedBox(height: 8),
@@ -345,7 +361,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
 /// Адрес возврата после входа: только внутренний путь приложения.
 String _safeTarget(String? from) {
-  if (from == null || !from.startsWith('/') || from.startsWith('//')) return '/';
+  if (from == null || !from.startsWith('/') || from.startsWith('//')) {
+    return '/';
+  }
   if (from.startsWith('/login') || from.startsWith('/register')) return '/';
   return from;
 }

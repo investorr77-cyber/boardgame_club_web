@@ -102,15 +102,15 @@ class EntityTable<T> extends StatelessWidget {
       selected: selected.contains(id),
       onSelectChanged:
           onToggleSelect == null ? null : (_) => onToggleSelect!(id),
-      color: muted
-          ? WidgetStatePropertyAll(scheme.surfaceContainerHighest)
-          : null,
+      color:
+          muted ? WidgetStatePropertyAll(scheme.surfaceContainerHighest) : null,
       cells: [
         for (var i = 0; i < columns.length; i++)
           DataCell(_cell(columns[i].build(item),
               muted: muted, withBadge: muted && i == 0)),
         if (actions != null)
-          DataCell(Row(mainAxisSize: MainAxisSize.min, children: actions!(item))),
+          DataCell(
+              Row(mainAxisSize: MainAxisSize.min, children: actions!(item))),
       ],
     );
   }
@@ -121,7 +121,11 @@ class EntityTable<T> extends StatelessWidget {
     if (!withBadge) return dimmed;
     return Row(
       mainAxisSize: MainAxisSize.min,
-      children: [dimmed, const SizedBox(width: 8), MutedBadge(label: mutedLabel)],
+      children: [
+        dimmed,
+        const SizedBox(width: 8),
+        MutedBadge(label: mutedLabel)
+      ],
     );
   }
 }

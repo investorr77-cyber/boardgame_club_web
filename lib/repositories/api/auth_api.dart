@@ -13,7 +13,9 @@ class AuthResult {
   });
 
   factory AuthResult.fromJson(Object? data) {
-    if (data is! Map) throw const ServerException('Сервер вернул данные в неверном формате.');
+    if (data is! Map) {
+      throw const ServerException('Сервер вернул данные в неверном формате.');
+    }
     return AuthResult(
       accessToken: '${data['accessToken']}',
       refreshToken: '${data['refreshToken']}',
@@ -42,8 +44,8 @@ class AuthApi {
 
   /// Пароль уходит как есть: хеширует его сервер. Хеш на клиенте
   /// стал бы просто новым паролем.
-  Future<AuthResult> login(String username, String password) => guard(() async =>
-      AuthResult.fromJson((await _dio.post<Object?>('/auth/login',
+  Future<AuthResult> login(String username, String password) => guard(
+      () async => AuthResult.fromJson((await _dio.post<Object?>('/auth/login',
               data: {'username': username, 'password': password}))
           .data));
 
@@ -64,9 +66,13 @@ class AuthApi {
 
   Future<AppUser> me(String accessToken) => guard(() async {
         final response = await _dio.get<Object?>('/auth/me',
-            options: Options(headers: {'Authorization': 'Bearer $accessToken'}));
+            options:
+                Options(headers: {'Authorization': 'Bearer $accessToken'}));
         final data = response.data;
-        if (data is! Map) throw const ServerException('Сервер вернул данные в неверном формате.');
+        if (data is! Map) {
+          throw const ServerException(
+              'Сервер вернул данные в неверном формате.');
+        }
         return AppUser.fromJson(Map<String, dynamic>.from(data));
       });
 }

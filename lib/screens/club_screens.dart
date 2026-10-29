@@ -23,7 +23,11 @@ void _say(BuildContext context, String message) {
 
 /// Каркас экранов ПР5: меню, шапка с пользователем, ограничение ширины.
 class _Page extends StatelessWidget {
-  const _Page({required this.path, required this.title, required this.body, this.actions = const []});
+  const _Page(
+      {required this.path,
+      required this.title,
+      required this.body,
+      this.actions = const []});
 
   final String path;
   final String title;
@@ -34,23 +38,27 @@ class _Page extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       drawer: AppDrawer(current: path),
-      appBar: AppBar(title: Text(title), actions: [...actions, const UserMenu()]),
+      appBar:
+          AppBar(title: Text(title), actions: [...actions, const UserMenu()]),
       body: Center(
-        child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 960), child: body),
+        child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 960), child: body),
       ),
     );
   }
 }
 
 /// Загрузка / ошибка / пусто / данные — для простых экранов.
-Widget _states<T>(LoadingNotifier<T> n, {required bool isEmpty, required Widget Function(T data) data}) {
+Widget _states<T>(LoadingNotifier<T> n,
+    {required bool isEmpty, required Widget Function(T data) data}) {
   if (n.status == LoadStatus.error) {
     return ErrorView(message: n.error ?? 'Неизвестная ошибка', onRetry: n.load);
   }
   final value = n.data;
   if (value == null) return const LoadingView();
   if (isEmpty) {
-    return const MessageView(icon: Icons.inbox_outlined, title: 'Пока ничего нет');
+    return const MessageView(
+        icon: Icons.inbox_outlined, title: 'Пока ничего нет');
   }
   return data(value);
 }
@@ -196,8 +204,8 @@ class _LoansScreenState extends State<LoansScreen> {
 }
 
 /// Оформление выдачи с карточки игры (сотрудник): выбор участника.
-Future<void> showIssueLoanDialog(
-    BuildContext context, {required int gameId, required String title}) async {
+Future<void> showIssueLoanDialog(BuildContext context,
+    {required int gameId, required String title}) async {
   final notifier = context.read<LoansNotifier>();
   List<AppUser> readers;
   try {
@@ -225,7 +233,8 @@ Future<void> showIssueLoanDialog(
     ),
   );
   if (reader == null || !context.mounted) return;
-  final message = await notifier.issue(gameId: gameId, userId: reader.id, title: title);
+  final message =
+      await notifier.issue(gameId: gameId, userId: reader.id, title: title);
   if (context.mounted) _say(context, message);
 }
 
@@ -261,7 +270,8 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                   for (final u in users)
                     Card(
                       child: ListTile(
-                        leading: CircleAvatar(child: Text(u.name.isEmpty ? '?' : u.name[0])),
+                        leading: CircleAvatar(
+                            child: Text(u.name.isEmpty ? '?' : u.name[0])),
                         title: Text(u.name),
                         subtitle: Text(u.username),
                         trailing: DropdownButton<Role>(
@@ -310,12 +320,21 @@ class _AdminStatsScreenState extends State<AdminStatsScreen> {
     return _Page(
       path: '/admin/stats',
       title: 'Статистика клуба',
-      actions: [IconButton(tooltip: 'Обновить', onPressed: n.load, icon: const Icon(Icons.refresh))],
+      actions: [
+        IconButton(
+            tooltip: 'Обновить',
+            onPressed: n.load,
+            icon: const Icon(Icons.refresh))
+      ],
       body: _states<Map<String, Object?>>(n, isEmpty: false, data: (s) {
-        final byRole = s['usersByRole'] is Map ? s['usersByRole'] as Map : const {};
+        final byRole =
+            s['usersByRole'] is Map ? s['usersByRole'] as Map : const {};
         final tiles = [
           ('Игр в каталоге', s['games']),
-          ('Коробок всего / свободно', '${s['copiesTotal']} / ${s['copiesAvailable']}'),
+          (
+            'Коробок всего / свободно',
+            '${s['copiesTotal']} / ${s['copiesAvailable']}'
+          ),
           ('Активных выдач', s['activeLoans']),
           ('Просроченных выдач', s['overdueLoans']),
           ('Авторов', s['designers']),
@@ -324,7 +343,8 @@ class _AdminStatsScreenState extends State<AdminStatsScreen> {
           ('Участников клуба', s['members']),
           ('Удалённых записей', s['deletedRecords']),
           ('Пользователей', s['users']),
-          for (final r in Role.values) ('Роль «${r.title}»', byRole[r.name] ?? 0),
+          for (final r in Role.values)
+            ('Роль «${r.title}»', byRole[r.name] ?? 0),
         ];
         return GridView.extent(
           padding: const EdgeInsets.all(16),
@@ -341,7 +361,8 @@ class _AdminStatsScreenState extends State<AdminStatsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text('$value', style: Theme.of(context).textTheme.headlineMedium),
+                      Text('$value',
+                          style: Theme.of(context).textTheme.headlineMedium),
                       Text(label),
                     ],
                   ),

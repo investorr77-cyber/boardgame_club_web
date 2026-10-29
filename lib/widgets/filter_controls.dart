@@ -125,7 +125,8 @@ class _YearRangeFieldsState extends State<YearRangeFields> {
   void didUpdateWidget(YearRangeFields oldWidget) {
     super.didUpdateWidget(oldWidget);
     // Сброс фильтров или переход по адресу — синхронизируем поля.
-    if (widget.from != oldWidget.from && _parse(_from.text).value != widget.from) {
+    if (widget.from != oldWidget.from &&
+        _parse(_from.text).value != widget.from) {
       _from.text = _text(widget.from);
       _error = null;
     }
@@ -150,12 +151,15 @@ class _YearRangeFieldsState extends State<YearRangeFields> {
     String? error;
     if (!from.valid || !to.valid) {
       error = 'Год — от 1900 до 2100';
-    } else if (from.value != null && to.value != null && from.value! > to.value!) {
+    } else if (from.value != null &&
+        to.value != null &&
+        from.value! > to.value!) {
       error = '«От» не может быть больше «до»';
     }
     setState(() => _error = error);
     if (error != null) return;
-    _timer = Timer(widget.debounce, () => widget.onChanged(from.value, to.value));
+    _timer =
+        Timer(widget.debounce, () => widget.onChanged(from.value, to.value));
   }
 
   Widget _field(TextEditingController controller, String label) {

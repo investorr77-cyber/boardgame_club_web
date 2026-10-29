@@ -12,7 +12,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('Права ролей', () {
-    test('участник: каталог и свои выдачи, но не правка и не администрирование', () {
+    test('участник: каталог и свои выдачи, но не правка и не администрирование',
+        () {
       expect(can(Role.member, Operation.viewCatalog), isTrue);
       expect(can(Role.member, Operation.viewOwnLoans), isTrue);
       expect(can(Role.member, Operation.extendLoan), isTrue);
@@ -41,7 +42,8 @@ void main() {
 
     test('у каждой роли есть операция, недоступная остальным', () {
       for (final role in Role.values) {
-        final own = Operation.values.where((op) => permissions[op]!.length == 1 && can(role, op));
+        final own = Operation.values
+            .where((op) => permissions[op]!.length == 1 && can(role, op));
         expect(own, isNotEmpty, reason: role.name);
       }
     });
@@ -59,7 +61,8 @@ void main() {
   });
 
   group('Защита маршрутов', () {
-    String? go(Role? role, String location) => authRedirect(role: role, uri: Uri.parse(location));
+    String? go(Role? role, String location) =>
+        authRedirect(role: role, uri: Uri.parse(location));
 
     test('без входа — на вход с запоминанием адреса', () {
       expect(go(null, '/games/5'), '/login?from=%2Fgames%2F5');
@@ -94,7 +97,8 @@ void main() {
     late List<String> requests; // заголовок Authorization каждого запроса
     late int refreshCalls;
 
-    Dio dioWith(int Function(RequestOptions o) status, {required bool refreshOk}) {
+    Dio dioWith(int Function(RequestOptions o) status,
+        {required bool refreshOk}) {
       requests = [];
       refreshCalls = 0;
       var token = 'old';
@@ -156,8 +160,8 @@ class _Adapter implements HttpClientAdapter {
   final ResponseBody Function(RequestOptions options) handler;
 
   @override
-  Future<ResponseBody> fetch(RequestOptions options, Stream<Uint8List>? requestStream,
-          Future<void>? cancelFuture) async =>
+  Future<ResponseBody> fetch(RequestOptions options,
+          Stream<Uint8List>? requestStream, Future<void>? cancelFuture) async =>
       handler(options);
 
   @override

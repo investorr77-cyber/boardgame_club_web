@@ -53,7 +53,8 @@ class ApiBoardGameRepository extends ApiCrudRepository<BoardGame, GameQuery>
       };
 
   @override
-  Future<bool> isBarcodeTaken(String barcode, {int? exceptId}) => guard(() async {
+  Future<bool> isBarcodeTaken(String barcode, {int? exceptId}) =>
+      guard(() async {
         final page = parsePage(
             (await dio.get<Object?>(path, queryParameters: {
               'search': barcode.trim(),
@@ -62,7 +63,8 @@ class ApiBoardGameRepository extends ApiCrudRepository<BoardGame, GameQuery>
             }))
                 .data,
             50);
-        return page.items.any((g) => g.barcode == barcode.trim() && g.id != exceptId);
+        return page.items
+            .any((g) => g.barcode == barcode.trim() && g.id != exceptId);
       });
 
   @override
@@ -79,12 +81,12 @@ class ApiBoardGameRepository extends ApiCrudRepository<BoardGame, GameQuery>
       });
 
   @override
-  Future<BoardGame> checkout(int id) =>
-      guard(() async => parseItem((await dio.post<Object?>('$path/$id/checkout')).data));
+  Future<BoardGame> checkout(int id) => guard(() async =>
+      parseItem((await dio.post<Object?>('$path/$id/checkout')).data));
 
   @override
-  Future<BoardGame> giveBack(int id) =>
-      guard(() async => parseItem((await dio.post<Object?>('$path/$id/return')).data));
+  Future<BoardGame> giveBack(int id) => guard(() async =>
+      parseItem((await dio.post<Object?>('$path/$id/return')).data));
 }
 
 class ApiDesignerRepository extends ApiCrudRepository<Designer, DesignerQuery>
@@ -127,7 +129,8 @@ class ApiGenreRepository extends ApiCrudRepository<Genre, SimpleQuery>
   int idOf(Genre item) => item.id;
 
   @override
-  Map<String, dynamic> toBody(Genre g) => {'name': g.name, 'description': g.description};
+  Map<String, dynamic> toBody(Genre g) =>
+      {'name': g.name, 'description': g.description};
 
   @override
   Map<String, dynamic> filterParams(SimpleQuery q) => const {};
@@ -174,7 +177,9 @@ class ApiMemberRepository extends ApiCrudRepository<Member, SimpleQuery>
 
   @override
   Map<String, dynamic> toBody(Member m) {
-    final json = m.toJson()..remove('id')..remove('deletedAt');
+    final json = m.toJson()
+      ..remove('id')
+      ..remove('deletedAt');
     return json;
   }
 
@@ -182,7 +187,8 @@ class ApiMemberRepository extends ApiCrudRepository<Member, SimpleQuery>
   Map<String, dynamic> filterParams(SimpleQuery q) =>
       {if (q.filter != null) 'city': q.filter};
 
-  Future<bool> _exists(String search, bool Function(Member m) match) => guard(() async {
+  Future<bool> _exists(String search, bool Function(Member m) match) =>
+      guard(() async {
         final page = parsePage(
             (await dio.get<Object?>(path, queryParameters: {
               'search': search,
@@ -197,10 +203,14 @@ class ApiMemberRepository extends ApiCrudRepository<Member, SimpleQuery>
   @override
   Future<bool> isEmailTaken(String email, {int? exceptId}) => _exists(
       email.trim(),
-      (m) => m.email.toLowerCase() == email.trim().toLowerCase() && m.id != exceptId);
+      (m) =>
+          m.email.toLowerCase() == email.trim().toLowerCase() &&
+          m.id != exceptId);
 
   @override
   Future<bool> isCardNumberTaken(String number, {int? exceptId}) => _exists(
       number.trim(),
-      (m) => m.card.number.toUpperCase() == number.trim().toUpperCase() && m.id != exceptId);
+      (m) =>
+          m.card.number.toUpperCase() == number.trim().toUpperCase() &&
+          m.id != exceptId);
 }

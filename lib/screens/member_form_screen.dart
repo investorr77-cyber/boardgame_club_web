@@ -21,7 +21,8 @@ class MemberFormScreen extends StatelessWidget {
       idParam: idParam,
       title: idParam == null ? 'Новый участник' : 'Изменение участника',
       listPath: '/members',
-      builder: (context, member) => _MemberForm(key: ValueKey(member), member: member),
+      builder: (context, member) =>
+          _MemberForm(key: ValueKey(member), member: member),
     );
   }
 }
@@ -42,7 +43,9 @@ class _MemberFormState extends State<_MemberForm> {
 
   Map<String, String> get _initialValues {
     final m = widget.member;
-    if (m == null) return {'card.issuedYear': '$currentYear', 'card.maxGames': '2'};
+    if (m == null) {
+      return {'card.issuedYear': '$currentYear', 'card.maxGames': '2'};
+    }
     return {
       'lastName': m.lastName,
       'firstName': m.firstName,
@@ -100,12 +103,14 @@ class _MemberFormState extends State<_MemberForm> {
           FieldSpec(
             name: 'lastName',
             label: 'Фамилия',
-            validator: all([notEmpty(), minLength(2), maxLength(40), letters()]),
+            validator:
+                all([notEmpty(), minLength(2), maxLength(40), letters()]),
           ),
           FieldSpec(
             name: 'firstName',
             label: 'Имя',
-            validator: all([notEmpty(), minLength(2), maxLength(40), letters()]),
+            validator:
+                all([notEmpty(), minLength(2), maxLength(40), letters()]),
           ),
           FieldSpec(
             name: 'email',
@@ -128,7 +133,8 @@ class _MemberFormState extends State<_MemberForm> {
           FieldSpec(
             name: 'city',
             label: 'Город',
-            validator: all([notEmpty(), minLength(2), maxLength(40), letters()]),
+            validator:
+                all([notEmpty(), minLength(2), maxLength(40), letters()]),
           ),
         ]),
         FieldGroup(title: 'Клубная карта (связь «один к одному»)', fields: [

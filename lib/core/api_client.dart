@@ -91,7 +91,9 @@ Dio buildDio({
             options.extra['refreshed'] != true) {
           if (await refreshSession()) {
             options.extra['refreshed'] = true;
-            if (kDebugMode) debugPrint('[API] токен обновлён, повтор ${options.uri}');
+            if (kDebugMode) {
+              debugPrint('[API] токен обновлён, повтор ${options.uri}');
+            }
             try {
               return handler.resolve(await dio.fetch(options));
             } on DioException catch (e) {
@@ -104,7 +106,9 @@ Dio buildDio({
 
         final attempt = (options.extra['attempt'] as int?) ?? 1;
         // Повтор — только для чтения: повторять создание записи нельзя.
-        if (options.method == 'GET' && _isNetworkFailure(error) && attempt < maxAttempts) {
+        if (options.method == 'GET' &&
+            _isNetworkFailure(error) &&
+            attempt < maxAttempts) {
           final wait = retryDelay * (1 << (attempt - 1)); // нарастающая пауза
           if (kDebugMode) {
             debugPrint('[API] повтор $attempt/${maxAttempts - 1} через '
@@ -119,7 +123,8 @@ Dio buildDio({
           }
         }
         if (kDebugMode) {
-          debugPrint('[API] сбой ${options.method} ${options.uri}: ${error.type}');
+          debugPrint(
+              '[API] сбой ${options.method} ${options.uri}: ${error.type}');
         }
         return handler.next(error);
       },

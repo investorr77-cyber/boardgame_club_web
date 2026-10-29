@@ -100,7 +100,8 @@ class MultiChipField extends FormField<List<int>> {
                             } else {
                               next.add(entry.key);
                             }
-                            field.didChange(next); // сообщаем форме об изменении
+                            field
+                                .didChange(next); // сообщаем форме об изменении
                             onChanged(next);
                           },
                         ),

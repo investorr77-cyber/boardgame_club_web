@@ -1,0 +1,14 @@
+# Render Blueprint: учебный сервер клуба настольных игр (ПР6).
+# Render → New → Blueprint → репозиторий boardgame_club_web.
+services:
+  - type: web
+    name: boardgame-club-api
+    runtime: node
+    plan: free
+    rootDir: server
+    buildCommand: echo "без зависимостей"
+    startCommand: node mock-server.js
+    healthCheckPath: /api/__health
+    envVars:
+      - key: CORS_ORIGINS
+        value: https://investorr77-cyber.github.io,http://localhost:5555

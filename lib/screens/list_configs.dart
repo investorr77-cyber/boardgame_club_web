@@ -29,9 +29,13 @@ final gamesListConfig = EntityListConfig<BoardGame, GameQuery>(
   subtitleOf: (g, refs) => '${g.year} · ${g.playTimeMin} мин · '
       '${playersText(g)} · ${refs.publisherName(g.publisherId)}',
   columns: (refs) => [
-    TableColumnSpec(label: 'Название', sortField: 'title', build: (g) => Text(g.title)),
     TableColumnSpec(
-        label: 'Год', sortField: 'year', numeric: true, build: (g) => Text('${g.year}')),
+        label: 'Название', sortField: 'title', build: (g) => Text(g.title)),
+    TableColumnSpec(
+        label: 'Год',
+        sortField: 'year',
+        numeric: true,
+        build: (g) => Text('${g.year}')),
     TableColumnSpec(
         label: 'Время партии',
         sortField: 'playTimeMin',
@@ -39,7 +43,8 @@ final gamesListConfig = EntityListConfig<BoardGame, GameQuery>(
         build: (g) => Text('${g.playTimeMin} мин')),
     TableColumnSpec(label: 'Игроки', build: (g) => Text(playersText(g))),
     TableColumnSpec(
-        label: 'Издатель', build: (g) => Text(refs.publisherName(g.publisherId))),
+        label: 'Издатель',
+        build: (g) => Text(refs.publisherName(g.publisherId))),
     TableColumnSpec(
         label: 'Свободно',
         numeric: true,
@@ -48,28 +53,35 @@ final gamesListConfig = EntityListConfig<BoardGame, GameQuery>(
   ],
   update: (q, {search, sortField, sortAscending, page, size, includeDeleted}) =>
       q.copyWith(
-        search: search,
-        sortField: sortField,
-        sortAscending: sortAscending,
-        page: page,
-        size: size,
-        includeDeleted: includeDeleted,
-      ),
-  reset: (q) =>
-      GameQuery(size: q.size, sortField: q.sortField, sortAscending: q.sortAscending),
-  activeFilterCount: (q) =>
-      [q.genreId, q.publisherId, q.yearFrom, q.yearTo].where((v) => v != null).length,
+    search: search,
+    sortField: sortField,
+    sortAscending: sortAscending,
+    page: page,
+    size: size,
+    includeDeleted: includeDeleted,
+  ),
+  reset: (q) => GameQuery(
+      size: q.size, sortField: q.sortField, sortAscending: q.sortAscending),
+  activeFilterCount: (q) => [q.genreId, q.publisherId, q.yearFrom, q.yearTo]
+      .where((v) => v != null)
+      .length,
   filters: (q, refs, apply) => [
     FilterDropdown<int>(
       label: 'Жанр',
       value: q.genreId,
-      options: {for (final g in refs.genres) if (!g.isDeleted) g.id: g.name},
+      options: {
+        for (final g in refs.genres)
+          if (!g.isDeleted) g.id: g.name
+      },
       onChanged: (v) => apply(q.copyWith(genreId: v)),
     ),
     FilterDropdown<int>(
       label: 'Издатель',
       value: q.publisherId,
-      options: {for (final p in refs.publishers) if (!p.isDeleted) p.id: p.name},
+      options: {
+        for (final p in refs.publishers)
+          if (!p.isDeleted) p.id: p.name
+      },
       onChanged: (v) => apply(q.copyWith(publisherId: v)),
     ),
     YearRangeFields(
@@ -89,9 +101,13 @@ final designersListConfig = EntityListConfig<Designer, DesignerQuery>(
   nameOf: (d) => d.fullName,
   subtitleOf: (d, refs) => '${d.country} · ${d.birthYear} г. р.',
   columns: (refs) => [
-    TableColumnSpec(label: 'Фамилия', sortField: 'lastName', build: (d) => Text(d.lastName)),
+    TableColumnSpec(
+        label: 'Фамилия',
+        sortField: 'lastName',
+        build: (d) => Text(d.lastName)),
     TableColumnSpec(label: 'Имя', build: (d) => Text(d.firstName)),
-    TableColumnSpec(label: 'Страна', sortField: 'country', build: (d) => Text(d.country)),
+    TableColumnSpec(
+        label: 'Страна', sortField: 'country', build: (d) => Text(d.country)),
     TableColumnSpec(
         label: 'Год рождения',
         sortField: 'birthYear',
@@ -100,18 +116,18 @@ final designersListConfig = EntityListConfig<Designer, DesignerQuery>(
     TableColumnSpec(
         label: 'Игр',
         numeric: true,
-        build: (d) =>
-            Text('${refs.games.where((g) => g.designerIds.contains(d.id)).length}')),
+        build: (d) => Text(
+            '${refs.games.where((g) => g.designerIds.contains(d.id)).length}')),
   ],
   update: (q, {search, sortField, sortAscending, page, size, includeDeleted}) =>
       q.copyWith(
-        search: search,
-        sortField: sortField,
-        sortAscending: sortAscending,
-        page: page,
-        size: size,
-        includeDeleted: includeDeleted,
-      ),
+    search: search,
+    sortField: sortField,
+    sortAscending: sortAscending,
+    page: page,
+    size: size,
+    includeDeleted: includeDeleted,
+  ),
   reset: (q) => DesignerQuery(
       size: q.size, sortField: q.sortField, sortAscending: q.sortAscending),
   activeFilterCount: (q) => q.country != null ? 1 : 0,
@@ -155,9 +171,11 @@ final genresListConfig = EntityListConfig<Genre, SimpleQuery>(
   idOf: (g) => g.id,
   isDeleted: (g) => g.isDeleted,
   nameOf: (g) => g.name,
-  subtitleOf: (g, refs) => g.description.isEmpty ? 'Без описания' : g.description,
+  subtitleOf: (g, refs) =>
+      g.description.isEmpty ? 'Без описания' : g.description,
   columns: (refs) => [
-    TableColumnSpec(label: 'Название', sortField: 'name', build: (g) => Text(g.name)),
+    TableColumnSpec(
+        label: 'Название', sortField: 'name', build: (g) => Text(g.name)),
     TableColumnSpec(
         label: 'Описание',
         build: (g) => ConstrainedBox(
@@ -166,8 +184,8 @@ final genresListConfig = EntityListConfig<Genre, SimpleQuery>(
     TableColumnSpec(
         label: 'Игр',
         numeric: true,
-        build: (g) =>
-            Text('${refs.games.where((game) => game.genreIds.contains(g.id)).length}')),
+        build: (g) => Text(
+            '${refs.games.where((game) => game.genreIds.contains(g.id)).length}')),
   ],
   update: _updateSimple,
   reset: _resetSimple,
@@ -184,8 +202,10 @@ final publishersListConfig = EntityListConfig<Publisher, SimpleQuery>(
   nameOf: (p) => p.name,
   subtitleOf: (p, refs) => '${p.country} · с ${p.foundedYear} г.',
   columns: (refs) => [
-    TableColumnSpec(label: 'Название', sortField: 'name', build: (p) => Text(p.name)),
-    TableColumnSpec(label: 'Страна', sortField: 'country', build: (p) => Text(p.country)),
+    TableColumnSpec(
+        label: 'Название', sortField: 'name', build: (p) => Text(p.name)),
+    TableColumnSpec(
+        label: 'Страна', sortField: 'country', build: (p) => Text(p.country)),
     TableColumnSpec(
         label: 'Год основания',
         sortField: 'foundedYear',
@@ -221,13 +241,20 @@ final membersListConfig = EntityListConfig<Member, SimpleQuery>(
   nameOf: (m) => m.fullName,
   subtitleOf: (m, refs) => '${m.city} · ${m.email} · карта ${m.card.number}',
   columns: (refs) => [
-    TableColumnSpec(label: 'Фамилия', sortField: 'lastName', build: (m) => Text(m.lastName)),
+    TableColumnSpec(
+        label: 'Фамилия',
+        sortField: 'lastName',
+        build: (m) => Text(m.lastName)),
     TableColumnSpec(label: 'Имя', build: (m) => Text(m.firstName)),
-    TableColumnSpec(label: 'Город', sortField: 'city', build: (m) => Text(m.city)),
-    TableColumnSpec(label: 'Почта', sortField: 'email', build: (m) => Text(m.email)),
+    TableColumnSpec(
+        label: 'Город', sortField: 'city', build: (m) => Text(m.city)),
+    TableColumnSpec(
+        label: 'Почта', sortField: 'email', build: (m) => Text(m.email)),
     TableColumnSpec(label: 'Клубная карта', build: (m) => Text(m.card.number)),
     TableColumnSpec(
-        label: 'Лимит игр', numeric: true, build: (m) => Text('${m.card.maxGames}')),
+        label: 'Лимит игр',
+        numeric: true,
+        build: (m) => Text('${m.card.maxGames}')),
   ],
   update: _updateSimple,
   reset: _resetSimple,

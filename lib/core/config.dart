@@ -9,7 +9,9 @@ const apiBaseUrl = String.fromEnvironment(
 
 /// Выход по бездействию, в секундах (по заданию — 3 минуты).
 /// Для проверки: --dart-define=INACTIVITY_SECONDS=60
-const inactivitySeconds = int.fromEnvironment('INACTIVITY_SECONDS', defaultValue: 180);
+const inactivitySeconds =
+    int.fromEnvironment('INACTIVITY_SECONDS', defaultValue: 180);
 
 /// Ограничение общей длительности сессии, в минутах.
-const sessionMaxMinutes = int.fromEnvironment('SESSION_MAX_MINUTES', defaultValue: 60);
+const sessionMaxMinutes =
+    int.fromEnvironment('SESSION_MAX_MINUTES', defaultValue: 60);

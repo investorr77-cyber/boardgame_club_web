@@ -52,8 +52,10 @@ class UserMenu extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(user.name, style: Theme.of(context).textTheme.labelLarge),
-                  Text(user.role.title, style: Theme.of(context).textTheme.labelSmall),
+                  Text(user.name,
+                      style: Theme.of(context).textTheme.labelLarge),
+                  Text(user.role.title,
+                      style: Theme.of(context).textTheme.labelSmall),
                 ],
               ),
             ],

@@ -141,7 +141,8 @@ class ReferenceNotifier extends ChangeNotifier {
   List<String> get publisherCountries =>
       _distinct([for (final p in _publishers) p.country]);
 
-  List<String> get memberCities => _distinct([for (final m in _members) m.city]);
+  List<String> get memberCities =>
+      _distinct([for (final m in _members) m.city]);
 
   static List<String> _distinct(List<String> values) =>
       ({...values}..removeWhere((v) => v.isEmpty)).toList()..sort();

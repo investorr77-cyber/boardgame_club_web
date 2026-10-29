@@ -67,8 +67,8 @@ class MyLoansNotifier extends LoadingNotifier<List<Loan>> {
   @override
   Future<List<Loan>> fetch() => _api.mine();
 
-  Future<String> extend(Loan loan) =>
-      run(() => _api.extend(loan.id), 'Срок «${loan.gameTitle}» продлён на неделю');
+  Future<String> extend(Loan loan) => run(
+      () => _api.extend(loan.id), 'Срок «${loan.gameTitle}» продлён на неделю');
 }
 
 /// Выдачи клуба: оформление и закрытие (сотрудник).
@@ -94,7 +94,8 @@ class LoansNotifier extends LoadingNotifier<List<Loan>> {
 
   Future<List<AppUser>> readers() => _api.readers();
 
-  Future<String> issue({required int gameId, required int userId, required String title}) =>
+  Future<String> issue(
+          {required int gameId, required int userId, required String title}) =>
       run(() async {
         await _api.issue(gameId: gameId, userId: userId);
         _changes?.bump(this);

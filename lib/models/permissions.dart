@@ -66,7 +66,9 @@ String? authRedirect({required Role? role, required Uri uri}) {
   final isPublic = path == '/login' || path == '/register';
   // Не вошёл и идёт на закрытый экран — на вход, запомнив, куда он хотел попасть.
   if (role == null) {
-    return isPublic ? null : '/login?from=${Uri.encodeComponent(uri.toString())}';
+    return isPublic
+        ? null
+        : '/login?from=${Uri.encodeComponent(uri.toString())}';
   }
   // Уже вошёл и идёт на экран входа — на главную.
   if (isPublic) return '/';

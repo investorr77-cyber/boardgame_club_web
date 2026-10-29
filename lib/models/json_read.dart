@@ -2,7 +2,8 @@
 // Поля может не быть, оно может оказаться null или прийти другого типа:
 // вместо `json['field'] as int` всегда берётся значение по умолчанию.
 
-int readInt(Object? value, [int fallback = 0]) => readIntOrNull(value) ?? fallback;
+int readInt(Object? value, [int fallback = 0]) =>
+    readIntOrNull(value) ?? fallback;
 
 int? readIntOrNull(Object? value) {
   if (value is int) return value;

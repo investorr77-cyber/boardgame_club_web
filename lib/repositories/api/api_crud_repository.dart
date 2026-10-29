@@ -45,7 +45,9 @@ abstract class ApiCrudRepository<T, Q extends ListQuery>
 
   @protected
   PageResult<T> parsePage(Object? data, int fallbackSize) {
-    if (data is! Map) throw const ServerException('Сервер вернул данные в неверном формате.');
+    if (data is! Map) {
+      throw const ServerException('Сервер вернул данные в неверном формате.');
+    }
     final items = data['items'];
     return PageResult<T>(
       items: [
@@ -61,7 +63,9 @@ abstract class ApiCrudRepository<T, Q extends ListQuery>
 
   @protected
   T parseItem(Object? data) {
-    if (data is! Map) throw const ServerException('Сервер вернул данные в неверном формате.');
+    if (data is! Map) {
+      throw const ServerException('Сервер вернул данные в неверном формате.');
+    }
     return fromJson(Map<String, dynamic>.from(data));
   }
 
@@ -89,7 +93,8 @@ abstract class ApiCrudRepository<T, Q extends ListQuery>
   @override
   Future<T?> findById(int id) async {
     try {
-      return await guard(() async => parseItem((await dio.get<Object?>('$path/$id')).data));
+      return await guard(
+          () async => parseItem((await dio.get<Object?>('$path/$id')).data));
     } on NotFoundException {
       return null;
     }
@@ -101,23 +106,28 @@ abstract class ApiCrudRepository<T, Q extends ListQuery>
 
   @override
   Future<T> update(T item) => guard(() async => parseItem(
-      (await dio.put<Object?>('$path/${idOf(item)}', data: toBody(item))).data));
+      (await dio.put<Object?>('$path/${idOf(item)}', data: toBody(item)))
+          .data));
 
   @override
-  Future<void> softDelete(int id) => guard(() => dio.delete<Object?>('$path/$id'));
+  Future<void> softDelete(int id) =>
+      guard(() => dio.delete<Object?>('$path/$id'));
 
   @override
-  Future<void> hardDelete(int id) =>
-      guard(() => dio.delete<Object?>('$path/$id', queryParameters: {'hard': true}));
+  Future<void> hardDelete(int id) => guard(
+      () => dio.delete<Object?>('$path/$id', queryParameters: {'hard': true}));
 
   @override
-  Future<void> restore(int id) => guard(() => dio.post<Object?>('$path/$id/restore'));
+  Future<void> restore(int id) =>
+      guard(() => dio.post<Object?>('$path/$id/restore'));
 
   @override
   Future<int> deleteMany(List<int> ids) => guard(() async {
         final response =
             await dio.post<Object?>('$path/bulk-delete', data: {'ids': ids});
         final data = response.data;
-        return data is Map && data['deleted'] is int ? data['deleted'] as int : 0;
+        return data is Map && data['deleted'] is int
+            ? data['deleted'] as int
+            : 0;
       });
 }

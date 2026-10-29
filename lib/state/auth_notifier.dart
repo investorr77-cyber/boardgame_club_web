@@ -52,7 +52,8 @@ class AuthNotifier extends ChangeNotifier {
   /// Почему сессия завершилась — показывается на экране входа.
   String? get logoutReason => _logoutReason;
 
-  bool can(Operation operation) => permissions[operation]?.contains(role) ?? false;
+  bool can(Operation operation) =>
+      permissions[operation]?.contains(role) ?? false;
 
   /// Восстановление сессии при запуске приложения.
   /// Вызывается один раз до построения дерева виджетов.
@@ -104,7 +105,8 @@ class AuthNotifier extends ChangeNotifier {
     final raw = _prefs.getString(_kUser);
     if (raw == null) return null;
     try {
-      return AppUser.fromJson(Map<String, dynamic>.from(jsonDecode(raw) as Map));
+      return AppUser.fromJson(
+          Map<String, dynamic>.from(jsonDecode(raw) as Map));
     } catch (_) {
       return null;
     }
@@ -120,7 +122,8 @@ class AuthNotifier extends ChangeNotifier {
     required String password,
   }) async {
     await _apply(
-      await _api.register(username: username.trim(), name: name.trim(), password: password),
+      await _api.register(
+          username: username.trim(), name: name.trim(), password: password),
       newSession: true,
     );
   }
@@ -169,7 +172,9 @@ class AuthNotifier extends ChangeNotifier {
   /// Любое действие пользователя. Время пишется в localStorage не чаще раза в 10 с.
   void touch() {
     final now = DateTime.now();
-    if (now.difference(_lastActivitySaved) < const Duration(seconds: 10)) return;
+    if (now.difference(_lastActivitySaved) < const Duration(seconds: 10)) {
+      return;
+    }
     _lastActivitySaved = now;
     _prefs.setString(_kActivity, now.toIso8601String());
   }
@@ -178,7 +183,9 @@ class AuthNotifier extends ChangeNotifier {
     _sessionTimer?.cancel();
     final left = maxSession - DateTime.now().difference(started);
     _sessionTimer = Timer(left.isNegative ? Duration.zero : left, () {
-      logout(reason: 'Время сеанса истекло (${maxSession.inMinutes} мин). Войдите снова.');
+      logout(
+          reason:
+              'Время сеанса истекло (${maxSession.inMinutes} мин). Войдите снова.');
     });
   }
 

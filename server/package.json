@@ -1,0 +1,1 @@
+{ "name": "boardgame-club-api", "version": "1.0.0", "private": true, "scripts": { "start": "node mock-server.js" }, "engines": { "node": ">=20" } }

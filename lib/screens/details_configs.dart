@@ -37,8 +37,9 @@ final gameDetailsConfig = EntityDetailsConfig<BoardGame>(
     ]),
   ],
   extra: (context, g, notifier, refs) {
-    final designers =
-        notifier is GameDetailsNotifier ? notifier.designers : const <Designer>[];
+    final designers = notifier is GameDetailsNotifier
+        ? notifier.designers
+        : const <Designer>[];
     final titleStyle = Theme.of(context).textTheme.titleMedium;
     // Кнопку выдачи видит только сотрудник: участнику она всё равно не разрешена.
     final canIssue = context.watch<AuthNotifier>().can(Operation.issueLoans);
@@ -47,7 +48,8 @@ final gameDetailsConfig = EntityDetailsConfig<BoardGame>(
       if (canIssue && !g.isDeleted) ...[
         const SizedBox(height: 12),
         FilledButton.icon(
-          onPressed: () => showIssueLoanDialog(context, gameId: g.id, title: g.title),
+          onPressed: () =>
+              showIssueLoanDialog(context, gameId: g.id, title: g.title),
           icon: const Icon(Icons.outbox_outlined),
           label: Text('Оформить выдачу (свободно ${g.copiesAvailable})'),
         ),

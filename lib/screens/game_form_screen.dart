@@ -215,7 +215,8 @@ class _GameFormState extends State<_GameForm> {
             initialValue: _designerIds,
             options: {
               for (final d in refs.designers)
-                if (!d.isDeleted || _designerIds.contains(d.id)) d.id: d.fullName,
+                if (!d.isDeleted || _designerIds.contains(d.id))
+                  d.id: d.fullName,
             },
             visibleIds: visibleDesigners,
             emptyMessage: 'Выберите хотя бы одного автора',

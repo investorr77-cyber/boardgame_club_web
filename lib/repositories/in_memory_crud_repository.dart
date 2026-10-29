@@ -88,7 +88,8 @@ abstract class InMemoryCrudRepository<T, Q extends ListQuery>
       final decoded = jsonDecode(raw);
       if (decoded is! List) throw const FormatException('ожидался список');
       items = [
-        for (final entry in decoded) decode(Map<String, dynamic>.from(entry as Map)),
+        for (final entry in decoded)
+          decode(Map<String, dynamic>.from(entry as Map)),
       ];
     } catch (_) {
       // Данные испорчены или формат изменился — начинаем заново,
@@ -103,7 +104,8 @@ abstract class InMemoryCrudRepository<T, Q extends ListQuery>
   Future<void> _persist() async {
     final s = store;
     if (s == null) return;
-    await s.write(storageKey, jsonEncode([for (final item in items) encode(item)]));
+    await s.write(
+        storageKey, jsonEncode([for (final item in items) encode(item)]));
   }
 
   /// Возврат к начальному набору (кнопка на главной).

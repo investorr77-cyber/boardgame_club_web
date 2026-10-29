@@ -102,10 +102,12 @@ class GameDetailsNotifier extends EntityDetailsNotifier<BoardGame> {
 
   /// Выдать коробку. Возвращает текст для пользователя: успех
   /// или понятное сообщение о конфликте 409 («нет свободных коробок»).
-  Future<String> checkout() => _changeCopies(_gameRepository.checkout, 'Коробка выдана участнику');
+  Future<String> checkout() =>
+      _changeCopies(_gameRepository.checkout, 'Коробка выдана участнику');
 
   /// Вернуть коробку в клуб.
-  Future<String> giveBack() => _changeCopies(_gameRepository.giveBack, 'Коробка возвращена в клуб');
+  Future<String> giveBack() =>
+      _changeCopies(_gameRepository.giveBack, 'Коробка возвращена в клуб');
 
   Future<String> _changeCopies(
       Future<BoardGame> Function(int id) action, String success) async {
@@ -143,14 +145,17 @@ class GameDetailsNotifier extends EntityDetailsNotifier<BoardGame> {
 
 /// Карточка автора со списком его игр.
 class DesignerDetailsNotifier extends EntityDetailsNotifier<Designer> {
-  DesignerDetailsNotifier(DesignerRepository designers, BoardGameRepository games,
+  DesignerDetailsNotifier(
+      DesignerRepository designers, BoardGameRepository games,
       {super.changes})
       : super(
           load: designers.findById,
           related: (designer) async {
             // findAll, а не find: find отменяет предыдущий запрос списка игр.
             final all = await games.findAll(includeDeleted: true);
-            return all.where((g) => g.designerIds.contains(designer.id)).toList();
+            return all
+                .where((g) => g.designerIds.contains(designer.id))
+                .toList();
           },
         );
 }

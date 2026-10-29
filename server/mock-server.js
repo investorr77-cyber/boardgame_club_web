@@ -21,8 +21,11 @@ const arg = (name, fallback) => {
   const i = args.indexOf(`--${name}`);
   return i >= 0 && args[i + 1] ? args[i + 1] : fallback;
 };
-const PORT = Number(arg('port', 8080));
-const ORIGIN = arg('origin', 'http://localhost:5555');
+// На хостинге (Render) порт и разрешённые источники приходят из окружения.
+const PORT = Number(process.env.PORT ?? arg('port', 8080));
+const ORIGINS = (process.env.CORS_ORIGINS ?? arg('origin', 'http://localhost:5555')).split(',').map((s) => s.trim());
+const ORIGIN = ORIGINS[0];
+const allowed = (origin) => ORIGINS.includes(origin);
 
 // Срок жизни токена доступа в секундах: --ttl 60 для проверки обновления токена.
 const TTL = Number(arg('ttl', 900));
@@ -500,8 +503,8 @@ function route(method, parts, q, body, user) {
 
 function send(res, origin, status, payload) {
   const headers = { 'Content-Type': 'application/json; charset=utf-8' };
-  if (origin === ORIGIN) {
-    headers['Access-Control-Allow-Origin'] = ORIGIN;
+  if (allowed(origin)) {
+    headers['Access-Control-Allow-Origin'] = origin;
     headers['Vary'] = 'Origin';
   }
   res.writeHead(status, headers);
@@ -515,9 +518,9 @@ const server = http.createServer((req, res) => {
 
   // Предварительный запрос CORS (OPTIONS) перед POST/PUT/DELETE с JSON.
   if (req.method === 'OPTIONS') {
-    if (origin === ORIGIN) {
+    if (allowed(origin)) {
       res.writeHead(204, {
-        'Access-Control-Allow-Origin': ORIGIN,
+        'Access-Control-Allow-Origin': origin,
         'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         'Access-Control-Max-Age': '600',
@@ -528,7 +531,7 @@ const server = http.createServer((req, res) => {
     }
     return res.end();
   }
-  if (origin && origin !== ORIGIN) {
+  if (origin && !allowed(origin)) {
     console.warn(`CORS: запрос с источника ${origin} — заголовок Access-Control-Allow-Origin не выдан`);
   }
 

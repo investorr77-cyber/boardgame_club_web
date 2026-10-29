@@ -76,8 +76,9 @@ class GameQuery implements ListQuery {
     final next = GameQuery(
       search: search ?? this.search,
       genreId: identical(genreId, _unset) ? this.genreId : genreId as int?,
-      publisherId:
-          identical(publisherId, _unset) ? this.publisherId : publisherId as int?,
+      publisherId: identical(publisherId, _unset)
+          ? this.publisherId
+          : publisherId as int?,
       yearFrom: identical(yearFrom, _unset) ? this.yearFrom : yearFrom as int?,
       yearTo: identical(yearTo, _unset) ? this.yearTo : yearTo as int?,
       sortField: sortField ?? this.sortField,

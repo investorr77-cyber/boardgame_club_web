@@ -59,8 +59,8 @@ void main() {
     });
 
     test('сортировка по году в обе стороны', () async {
-      final asc = await games
-          .find(const GameQuery(sortField: 'year', size: 50));
+      final asc =
+          await games.find(const GameQuery(sortField: 'year', size: 50));
       final desc = await games.find(
           const GameQuery(sortField: 'year', sortAscending: false, size: 50));
       final ascYears = asc.items.map((g) => g.year).toList();

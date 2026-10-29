@@ -39,7 +39,8 @@ class FieldSpec {
 /// Группа полей с заголовком. Отдельной группой показывается связь
 /// «один к одному» (клубная карта участника), а в [children] — поля связей.
 class FieldGroup {
-  const FieldGroup({this.title, this.fields = const [], this.children = const []});
+  const FieldGroup(
+      {this.title, this.fields = const [], this.children = const []});
 
   final String? title;
   final List<FieldSpec> fields;
@@ -235,11 +236,13 @@ class _EntityFormState extends State<EntityForm> {
                             ? const SizedBox(
                                 width: 16,
                                 height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
                               )
                             : const Icon(Icons.save_outlined),
-                        label: Text(
-                            widget.isEditing ? 'Сохранить изменения' : 'Создать'),
+                        label: Text(widget.isEditing
+                            ? 'Сохранить изменения'
+                            : 'Создать'),
                       ),
                     ],
                   ),
@@ -289,7 +292,8 @@ class _EntityFormState extends State<EntityForm> {
     );
     final title = group.title;
     if (title == null) {
-      return Padding(padding: const EdgeInsets.only(bottom: 16), child: content);
+      return Padding(
+          padding: const EdgeInsets.only(bottom: 16), child: content);
     }
     return Card(
       margin: const EdgeInsets.only(bottom: 16),

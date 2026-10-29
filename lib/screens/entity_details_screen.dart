@@ -49,7 +49,8 @@ class EntityDetailsConfig<T> {
 
 /// Карточка любой сущности. [idParam] — строка из адреса, может быть нечисловой.
 class EntityDetailsScreen<T> extends StatefulWidget {
-  const EntityDetailsScreen({super.key, required this.config, required this.idParam});
+  const EntityDetailsScreen(
+      {super.key, required this.config, required this.idParam});
 
   final EntityDetailsConfig<T> config;
   final String idParam;
@@ -174,12 +175,14 @@ class _EntityDetailsScreenState<T> extends State<EntityDetailsScreen<T>> {
                     Text(section.title!, style: theme.textTheme.titleMedium),
                     const SizedBox(height: 8),
                   ],
-                  for (final (label, value) in section.rows) _InfoRow(label, value),
+                  for (final (label, value) in section.rows)
+                    _InfoRow(label, value),
                 ],
               ),
             ),
           ),
-        if (_config.extra != null) ..._config.extra!(context, item, notifier, refs),
+        if (_config.extra != null)
+          ..._config.extra!(context, item, notifier, refs),
         if (_config.relatedTitle != null) ...[
           const SizedBox(height: 16),
           Text('${_config.relatedTitle} (${notifier.games.length})',

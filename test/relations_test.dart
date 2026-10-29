@@ -26,7 +26,8 @@ void main() {
 
     test('почта и номер карты участника без учёта регистра', () async {
       expect(await members.isEmailTaken('ALEXEY.IVANOV@example.com'), isTrue);
-      expect(await members.isEmailTaken('alexey.ivanov@example.com', exceptId: 1),
+      expect(
+          await members.isEmailTaken('alexey.ivanov@example.com', exceptId: 1),
           isFalse);
       expect(await members.isCardNumberTaken('bg-000102'), isTrue);
       expect(await members.isCardNumberTaken('BG-999999'), isFalse);
@@ -44,8 +45,8 @@ void main() {
     });
 
     test('издателя без игр удалить можно', () async {
-      final created = await publishers.create(
-          const Publisher(id: 0, name: 'Новый', country: 'Россия', foundedYear: 2020));
+      final created = await publishers.create(const Publisher(
+          id: 0, name: 'Новый', country: 'Россия', foundedYear: 2020));
       final notifier = PublisherListNotifier(publishers, games);
       await notifier.load();
       expect(await notifier.softDelete(created.id), isNull);

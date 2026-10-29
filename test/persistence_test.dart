@@ -16,7 +16,8 @@ void main() {
 
   group('toJson / fromJson', () {
     test('игра: туда и обратно без потерь', () {
-      final game = buildSeedGames().first.copyWith(deletedAt: DateTime(2026, 10, 1));
+      final game =
+          buildSeedGames().first.copyWith(deletedAt: DateTime(2026, 10, 1));
       final back = BoardGame.fromJson(jsonDecode(jsonEncode(game.toJson())));
       expect(back.toJson(), game.toJson());
     });
@@ -65,22 +66,28 @@ void main() {
     Future<LocalStore> store() async =>
         LocalStore(await SharedPreferences.getInstance());
 
-    test('созданная запись видна после «перезагрузки» (новый репозиторий)', () async {
+    test('созданная запись видна после «перезагрузки» (новый репозиторий)',
+        () async {
       final s = await store();
       final first = InMemoryBoardGameRepository(store: s, delay: Duration.zero);
-      final created = await first.create(
-          buildSeedGames().first.copyWith(title: 'Новая игра', barcode: ean13(99)));
+      final created = await first.create(buildSeedGames()
+          .first
+          .copyWith(title: 'Новая игра', barcode: ean13(99)));
       await first.softDelete(2);
 
-      final reloaded = InMemoryBoardGameRepository(store: s, delay: Duration.zero);
+      final reloaded =
+          InMemoryBoardGameRepository(store: s, delay: Duration.zero);
       expect((await reloaded.findById(created.id))?.title, 'Новая игра');
       expect((await reloaded.findById(2))?.isDeleted, isTrue);
       expect((await reloaded.find(const GameQuery())).total, 30);
     });
 
-    test('испорченные данные: начальный набор и сообщение, без падения', () async {
-      SharedPreferences.setMockInitialValues({LocalStore.key('games'): '{oops'});
-      final repo = InMemoryBoardGameRepository(store: await store(), delay: Duration.zero);
+    test('испорченные данные: начальный набор и сообщение, без падения',
+        () async {
+      SharedPreferences.setMockInitialValues(
+          {LocalStore.key('games'): '{oops'});
+      final repo = InMemoryBoardGameRepository(
+          store: await store(), delay: Duration.zero);
       expect((await repo.find(const GameQuery())).total, 30);
       expect(repo.restoreNotice, contains('не удалось прочитать'));
     });
@@ -100,10 +107,14 @@ void main() {
     });
 
     test('сброс к начальному набору', () async {
-      final repo = InMemoryMemberRepository(store: await store(), delay: Duration.zero);
+      final repo =
+          InMemoryMemberRepository(store: await store(), delay: Duration.zero);
       await repo.hardDelete(1);
       await repo.reset();
-      expect((await repo.find(const SimpleQuery(defaultSortField: 'lastName'))).total, 12);
+      expect(
+          (await repo.find(const SimpleQuery(defaultSortField: 'lastName')))
+              .total,
+          12);
     });
   });
 }

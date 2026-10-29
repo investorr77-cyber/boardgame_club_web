@@ -14,7 +14,8 @@ sealed class ApiException implements Exception {
 
 /// Нет соединения, таймаут, сервер недоступен, заблокировано CORS.
 class NetworkException extends ApiException {
-  const NetworkException([super.message = 'Сервер недоступен. Проверьте соединение.']);
+  const NetworkException(
+      [super.message = 'Сервер недоступен. Проверьте соединение.']);
 }
 
 /// 401 — не аутентифицирован либо срок действия токена истёк.
@@ -24,7 +25,8 @@ class UnauthorizedException extends ApiException {
 
 /// 403 — роль не позволяет выполнить операцию.
 class ForbiddenException extends ApiException {
-  const ForbiddenException([super.message = 'Недостаточно прав для этого действия.']);
+  const ForbiddenException(
+      [super.message = 'Недостаточно прав для этого действия.']);
 }
 
 /// 404.
@@ -46,17 +48,20 @@ class ValidationException extends ApiException {
 
 /// 5xx.
 class ServerException extends ApiException {
-  const ServerException([super.message = 'Ошибка на сервере. Попробуйте позже.']);
+  const ServerException(
+      [super.message = 'Ошибка на сервере. Попробуйте позже.']);
 }
 
 /// Код ответа и тело → исключение предметной области.
 ApiException mapHttpError(int status, dynamic body) {
-  final message =
-      (body is Map && body['message'] is String) ? body['message'] as String : null;
+  final message = (body is Map && body['message'] is String)
+      ? body['message'] as String
+      : null;
 
   return switch (status) {
     401 => UnauthorizedException(message ?? 'Требуется вход в систему.'),
-    403 => ForbiddenException(message ?? 'Недостаточно прав для этого действия.'),
+    403 =>
+      ForbiddenException(message ?? 'Недостаточно прав для этого действия.'),
     404 => NotFoundException(message ?? 'Запись не найдена.'),
     409 => ConflictException(message ?? 'Операция невозможна.'),
     422 => ValidationException(

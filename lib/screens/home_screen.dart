@@ -37,17 +37,72 @@ class HomeScreen extends StatelessWidget {
     final auth = context.watch<AuthNotifier>();
     final refs = context.watch<ReferenceNotifier>();
     final user = auth.user;
-    String count(List<Object?> items) => refs.loaded ? 'Записей: ${items.length}' : '…';
+    String count(List<Object?> items) =>
+        refs.loaded ? 'Записей: ${items.length}' : '…';
     final sections = [
-      ('/games', 'Игры', Icons.casino_outlined, count(refs.games), Operation.viewCatalog),
-      ('/designers', 'Авторы', Icons.person_outline, count(refs.designers), Operation.viewCatalog),
-      ('/genres', 'Жанры', Icons.category_outlined, count(refs.genres), Operation.viewCatalog),
-      ('/publishers', 'Издатели', Icons.business_outlined, count(refs.publishers), Operation.viewCatalog),
-      ('/my-loans', 'Мои выдачи', Icons.bookmark_outline, 'Продление срока', Operation.viewOwnLoans),
-      ('/members', 'Участники клуба', Icons.badge_outlined, count(refs.members), Operation.viewMembers),
-      ('/loans', 'Выдачи', Icons.outbox_outlined, 'Оформление и закрытие', Operation.issueLoans),
-      ('/admin/users', 'Пользователи и роли', Icons.manage_accounts_outlined, 'Назначение ролей', Operation.manageUsers),
-      ('/admin/stats', 'Статистика', Icons.insights_outlined, 'Сводка по клубу', Operation.viewStats),
+      (
+        '/games',
+        'Игры',
+        Icons.casino_outlined,
+        count(refs.games),
+        Operation.viewCatalog
+      ),
+      (
+        '/designers',
+        'Авторы',
+        Icons.person_outline,
+        count(refs.designers),
+        Operation.viewCatalog
+      ),
+      (
+        '/genres',
+        'Жанры',
+        Icons.category_outlined,
+        count(refs.genres),
+        Operation.viewCatalog
+      ),
+      (
+        '/publishers',
+        'Издатели',
+        Icons.business_outlined,
+        count(refs.publishers),
+        Operation.viewCatalog
+      ),
+      (
+        '/my-loans',
+        'Мои выдачи',
+        Icons.bookmark_outline,
+        'Продление срока',
+        Operation.viewOwnLoans
+      ),
+      (
+        '/members',
+        'Участники клуба',
+        Icons.badge_outlined,
+        count(refs.members),
+        Operation.viewMembers
+      ),
+      (
+        '/loans',
+        'Выдачи',
+        Icons.outbox_outlined,
+        'Оформление и закрытие',
+        Operation.issueLoans
+      ),
+      (
+        '/admin/users',
+        'Пользователи и роли',
+        Icons.manage_accounts_outlined,
+        'Назначение ролей',
+        Operation.manageUsers
+      ),
+      (
+        '/admin/stats',
+        'Статистика',
+        Icons.insights_outlined,
+        'Сводка по клубу',
+        Operation.viewStats
+      ),
     ];
     final roleHint = switch (user?.role) {
       null => '',
@@ -55,11 +110,14 @@ class HomeScreen extends StatelessWidget {
         'Каталог клуба и ваши выдачи: срок можно продлить.',
       _ when auth.can(Operation.issueLoans) =>
         'Управление каталогом и справочниками, выдачи, участники клуба.',
-      _ => 'Пользователи и роли, восстановление и физическое удаление записей, статистика.',
+      _ =>
+        'Пользователи и роли, восстановление и физическое удаление записей, статистика.',
     };
     return Scaffold(
       drawer: const AppDrawer(current: '/'),
-      appBar: AppBar(title: const Text('Клуб настольных игр'), actions: const [UserMenu()]),
+      appBar: AppBar(
+          title: const Text('Клуб настольных игр'),
+          actions: const [UserMenu()]),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -69,13 +127,16 @@ class HomeScreen extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Icon(Icons.extension, size: 56, color: theme.colorScheme.primary),
+                Icon(Icons.extension,
+                    size: 56, color: theme.colorScheme.primary),
                 const SizedBox(height: 12),
                 Text('Здравствуйте, ${user?.name ?? 'гость'}!',
-                    textAlign: TextAlign.center, style: theme.textTheme.headlineSmall),
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.headlineSmall),
                 const SizedBox(height: 4),
                 Text('Роль: ${user?.role.title ?? '—'}',
-                    textAlign: TextAlign.center, style: theme.textTheme.titleMedium),
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.titleMedium),
                 const SizedBox(height: 8),
                 Text(roleHint, textAlign: TextAlign.center),
                 const SizedBox(height: 24),
@@ -96,12 +157,15 @@ class HomeScreen extends StatelessWidget {
                                 padding: const EdgeInsets.all(16),
                                 child: Column(
                                   children: [
-                                    Icon(icon, size: 36, color: theme.colorScheme.primary),
+                                    Icon(icon,
+                                        size: 36,
+                                        color: theme.colorScheme.primary),
                                     const SizedBox(height: 8),
                                     Text(title,
                                         textAlign: TextAlign.center,
                                         style: theme.textTheme.titleMedium),
-                                    Text(subtitle, style: theme.textTheme.bodySmall),
+                                    Text(subtitle,
+                                        style: theme.textTheme.bodySmall),
                                   ],
                                 ),
                               ),
