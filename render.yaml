@@ -1,14 +1,25 @@
-# Render Blueprint: учебный сервер клуба настольных игр (ПР6).
+# Render Blueprint: сервер клуба настольных игр и база PostgreSQL (ПР6).
 # Render → New → Blueprint → репозиторий boardgame_club_web.
+databases:
+  - name: boardgame-club-db
+    plan: free
+    databaseName: boardgame_club
+    user: boardgame_club
+
 services:
   - type: web
     name: boardgame-club-api
     runtime: node
     plan: free
     rootDir: server
-    buildCommand: echo "без зависимостей"
+    buildCommand: npm install
     startCommand: node mock-server.js
     healthCheckPath: /api/__health
     envVars:
       - key: CORS_ORIGINS
         value: https://investorr77-cyber.github.io,http://localhost:5555
+      # Строка подключения к базе — из созданной выше базы Render.
+      - key: DATABASE_URL
+        fromDatabase:
+          name: boardgame-club-db
+          property: connectionString

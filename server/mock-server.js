@@ -15,6 +15,7 @@
 const http = require('http');
 const seed = require('./seed');
 const auth = require('./auth');
+const storage = require('./storage');
 
 const args = process.argv.slice(2);
 const arg = (name, fallback) => {
@@ -566,14 +567,28 @@ const server = http.createServer((req, res) => {
         payload = { message: e.message, ...(e.errors ? { errors: e.errors } : {}) };
         if (!(e instanceof HttpError)) console.error(e);
       }
+      // Любое изменение данных сохраняется в базу (если она подключена).
+      if (req.method !== 'GET' && status < 400) storage.save(db);
       send(res, origin, status, payload);
       console.log(`${req.method} ${url.pathname}${url.search} → ${status} (${Date.now() - started} мс)`);
     }, delay);
   });
 });
 
-server.listen(PORT, () => {
+(async () => {
+  try {
+    if (await storage.connect()) {
+      const saved = await storage.load();
+      if (saved) db = saved;
+      else storage.save(db); // первый запуск — записываем начальный набор
+      console.log(saved ? 'Данные загружены из PostgreSQL' : 'PostgreSQL: записан начальный набор');
+    }
+  } catch (e) {
+    console.error('PostgreSQL недоступна, данные только в памяти:', e.message);
+  }
+  server.listen(PORT, () => {
   console.log(`Сервер клуба настольных игр: http://localhost:${PORT}/api`);
   console.log(`Проверка: http://localhost:${PORT}/api/__health`);
   console.log(`CORS разрешён для: ${ORIGIN}`);
 });
+})();
