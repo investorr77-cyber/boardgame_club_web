@@ -5,7 +5,9 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/api_client.dart';
+import 'core/api_exceptions.dart';
 import 'core/config.dart';
+import 'core/supabase_errors.dart';
 import 'models/board_game.dart';
 import 'models/designer.dart';
 import 'models/designer_query.dart';
@@ -20,6 +22,9 @@ import 'repositories/api/club_api.dart';
 import 'repositories/board_game_repository.dart';
 import 'repositories/designer_repository.dart';
 import 'repositories/reference_repositories.dart';
+import 'repositories/supabase/supabase_auth_api.dart';
+import 'repositories/supabase/supabase_club_api.dart';
+import 'repositories/supabase/supabase_repositories.dart';
 import 'router.dart';
 import 'state/auth_notifier.dart';
 import 'state/club_notifiers.dart';
@@ -42,7 +47,7 @@ Future<void> main() async {
   final prefs = await SharedPreferences.getInstance();
   final auth = AuthNotifier(
     prefs,
-    AuthApi(),
+    useSupabase ? SupabaseAuthApi() : AuthApi(),
     inactivityTimeout: const Duration(seconds: inactivitySeconds),
     maxSession: const Duration(minutes: sessionMaxMinutes),
   );
@@ -52,19 +57,34 @@ Future<void> main() async {
   // Все запросы к защищённым адресам уходят с заголовком Authorization;
   // при 401 интерсептор обновляет токен и повторяет запрос.
   final dio = buildDio(
+    // Supabase: REST-интерфейс базы (PostgREST) и ключ проекта в заголовке.
+    baseUrl: useSupabase ? '$supabaseUrl/rest/v1' : apiBaseUrl,
+    headers: useSupabase ? const {'apikey': supabaseKey} : const {},
+    errorMapper: useSupabase ? mapSupabaseError : mapHttpError,
+    simulateOnClient: useSupabase,
+    debugParams: useSupabase ? const {} : null,
     simulateFailure: () => failure.enabled,
     tokenProvider: () => auth.accessToken,
     refreshSession: auth.refreshTokens,
     onSessionExpired: () =>
         auth.logout(reason: 'Сессия истекла. Войдите снова.'),
   );
-  final loanApi = LoanApi(dio);
-  final adminApi = AdminApi(dio);
-  final games = ApiBoardGameRepository(dio);
-  final designers = ApiDesignerRepository(dio);
-  final genres = ApiGenreRepository(dio);
-  final publishers = ApiPublisherRepository(dio);
-  final members = ApiMemberRepository(dio);
+  // Источник данных выбирается при сборке; экраны и notifier'ы общие.
+  final LoanApi loanApi = useSupabase ? SupabaseLoanApi(dio) : LoanApi(dio);
+  final AdminApi adminApi = useSupabase ? SupabaseAdminApi(dio) : AdminApi(dio);
+  final BoardGameRepository games = useSupabase
+      ? SupabaseBoardGameRepository(dio)
+      : ApiBoardGameRepository(dio);
+  final DesignerRepository designers = useSupabase
+      ? SupabaseDesignerRepository(dio)
+      : ApiDesignerRepository(dio);
+  final GenreRepository genres =
+      useSupabase ? SupabaseGenreRepository(dio) : ApiGenreRepository(dio);
+  final PublisherRepository publishers = useSupabase
+      ? SupabasePublisherRepository(dio)
+      : ApiPublisherRepository(dio);
+  final MemberRepository members =
+      useSupabase ? SupabaseMemberRepository(dio) : ApiMemberRepository(dio);
   const notices = <String>[];
   final changes = DataChanges();
 

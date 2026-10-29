@@ -10,6 +10,15 @@ const rows = (list) => list.map((r) => `  (${r.map(q).join(', ')})`).join(',\n')
 
 const out = [
   '-- Начальные данные клуба. Сгенерировано: node supabase/make-seed.js',
+  '-- Функция reset_demo возвращает начальный набор: её вызывает кнопка',
+  '-- «Сбросить данные» администратора и этот скрипт (последней строкой).',
+  'create or replace function public.reset_demo() returns void',
+  'language plpgsql security definer set search_path = public as $$',
+  'begin',
+  '  -- Из SQL Editor (auth.uid() пуст) — можно, из приложения — только администратору.',
+  "  if auth.uid() is not null and not public.is_role('admin') then",
+  "    raise exception 'Недостаточно прав для этого действия' using errcode = '42501';",
+  '  end if;',
   'truncate public.loans, public.member_cards, public.members, public.game_genres,',
   '  public.game_designers, public.games, public.designers, public.genres, public.publishers restart identity cascade;',
   '',
@@ -32,8 +41,13 @@ const out = [
   '',
   '-- Счётчики идентификаторов продолжаются после начальных записей.',
   ...['publishers', 'genres', 'designers', 'games', 'members'].map(
-    (t) => `select setval(pg_get_serial_sequence('public.${t}', 'id'), (select max(id) from public.${t}));`,
+    (t) => `select setval(pg_get_serial_sequence('public.${t}', 'id'), (select max(id) from public.${t}));`.replace('select', 'perform'),
   ),
+  'end $$;',
+  '',
+  'revoke execute on function public.reset_demo() from anon, public;',
+  'grant execute on function public.reset_demo() to authenticated;',
+  'select public.reset_demo();',
   '',
 ];
 fs.writeFileSync(path.join(__dirname, 'seed.sql'), out.join('\n'));

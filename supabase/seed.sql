@@ -1,4 +1,13 @@
 -- Начальные данные клуба. Сгенерировано: node supabase/make-seed.js
+-- Функция reset_demo возвращает начальный набор: её вызывает кнопка
+-- «Сбросить данные» администратора и этот скрипт (последней строкой).
+create or replace function public.reset_demo() returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  -- Из SQL Editor (auth.uid() пуст) — можно, из приложения — только администратору.
+  if auth.uid() is not null and not public.is_role('admin') then
+    raise exception 'Недостаточно прав для этого действия' using errcode = '42501';
+  end if;
 truncate public.loans, public.member_cards, public.members, public.game_genres,
   public.game_designers, public.games, public.designers, public.genres, public.publishers restart identity cascade;
 
@@ -167,8 +176,13 @@ insert into public.member_cards (member_id, number, issued_year, max_games) valu
   (12, 'BG-000112', 2022, 3);
 
 -- Счётчики идентификаторов продолжаются после начальных записей.
-select setval(pg_get_serial_sequence('public.publishers', 'id'), (select max(id) from public.publishers));
-select setval(pg_get_serial_sequence('public.genres', 'id'), (select max(id) from public.genres));
-select setval(pg_get_serial_sequence('public.designers', 'id'), (select max(id) from public.designers));
-select setval(pg_get_serial_sequence('public.games', 'id'), (select max(id) from public.games));
-select setval(pg_get_serial_sequence('public.members', 'id'), (select max(id) from public.members));
+perform setval(pg_get_serial_sequence('public.publishers', 'id'), (select max(id) from public.publishers));
+perform setval(pg_get_serial_sequence('public.genres', 'id'), (select max(id) from public.genres));
+perform setval(pg_get_serial_sequence('public.designers', 'id'), (select max(id) from public.designers));
+perform setval(pg_get_serial_sequence('public.games', 'id'), (select max(id) from public.games));
+perform setval(pg_get_serial_sequence('public.members', 'id'), (select max(id) from public.members));
+end $$;
+
+revoke execute on function public.reset_demo() from anon, public;
+grant execute on function public.reset_demo() to authenticated;
+select public.reset_demo();
